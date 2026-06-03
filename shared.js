@@ -7,6 +7,7 @@ const LS_KEY = 'azia_apikey';
 const LS_BIN = 'azia_binid';
 const LS_PLAYER = 'azia_player';
 const LS_TEACHER = 'azia_is_teacher';
+const SS_STUDENT_JOINED = 'azia_student_joined';
 
 // ⚠ Shared class API key for student mode.
 // Paste your jsonbin.io X-Master-Key here so students don't need to.
@@ -93,9 +94,13 @@ function parseRoomInput(raw) {
 
 function getRoom() {
   const hash = readHash();
-  // Student page should not auto-join old/cached rooms.
-  // Student must paste the room ID manually.
-  if (hash.get('student') === '1' && !hash.get('room') && !hash.get('bin')) {
+  // Student page starts clean only before manual join.
+  if (
+    hash.get('student') === '1' &&
+    !hash.get('room') &&
+    !hash.get('bin') &&
+    sessionStorage.getItem(SS_STUDENT_JOINED) !== '1'
+  ) {
     localStorage.removeItem(LS_BIN);
     return '';
   }
@@ -120,6 +125,9 @@ function setRoom(raw) {
     throw new Error('Neplatné ID herne (musí byť 24 hex znakov)');
   }
   localStorage.setItem(LS_BIN, room);
+  if (readHash().get('student') === '1') {
+    sessionStorage.setItem(SS_STUDENT_JOINED, '1');
+  }
   syncHash();
   return room;
 }
@@ -127,7 +135,7 @@ function setRoom(raw) {
 function syncHash() {
   const params = readHash();
   const room = localStorage.getItem(LS_BIN);
-  if (room && params.get('teacher') === '1') {
+  if (room) {
     params.set('room', room);
   } else {
     params.delete('room');
