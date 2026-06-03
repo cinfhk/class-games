@@ -351,9 +351,25 @@
     <div class="title-sub">Hraj, zbieraj body — víťaz získa odmenu</div>
   </header>
 
+  <!-- STEP 0: API KEY (teacher only, one-time) -->
+  <div class="frame" id="apikey-frame">
+    <span class="frame-label">① API kľúč</span>
+    <div class="step-row">
+      <span class="step-num" id="apikey-step-num">0</span>
+      <div style="flex:1; min-width:160px;">
+        <div class="step-title">jsonbin.io kľúč</div>
+        <div class="step-hint" id="apikey-hint">
+          Iba učiteľ — raz. <a href="https://jsonbin.io/login" target="_blank" rel="noopener" style="color:var(--gold)">Zaregistruj sa zdarma</a> → Account → API Keys → skopíruj <em>X-Master-Key</em>.
+        </div>
+      </div>
+      <input type="text" id="apikey-input" placeholder="$2a$10$…" maxlength="80" autocomplete="off" style="font-family:'Space Mono',monospace;font-size:12px">
+      <button class="btn btn-gold" id="save-apikey-btn">Uložiť</button>
+    </div>
+  </div>
+
   <!-- STEP 1: ROOM -->
   <div class="frame" id="room-frame">
-    <span class="frame-label">① Trieda</span>
+    <span class="frame-label">② Trieda</span>
     <div class="step-row">
       <span class="step-num" id="room-step-num">1</span>
       <div style="flex:1; min-width:160px;">
@@ -375,7 +391,7 @@
 
   <!-- STEP 2: PLAYER -->
   <div class="frame" id="player-frame">
-    <span class="frame-label">② Hráč</span>
+    <span class="frame-label">③ Hráč</span>
     <div class="step-row">
       <span class="step-num" id="player-step-num">2</span>
       <div style="flex:1; min-width:160px;">
@@ -389,7 +405,7 @@
 
   <!-- STEP 3: GAMES -->
   <div class="frame">
-    <span class="frame-label">③ Hry</span>
+    <span class="frame-label">④ Hry</span>
     <div class="games-grid">
       <a href="#" class="game-card disabled" id="card-quiz" data-game="asia-quiz.html">
         <div class="gc-char">問</div>
@@ -408,7 +424,7 @@
 
   <!-- STEP 4: LEADERBOARD -->
   <div class="frame">
-    <span class="frame-label">④ Rebríček</span>
+    <span class="frame-label">⑤ Rebríček</span>
     <div class="lb-controls">
       <div class="lb-info" id="lb-info">— čaká sa na herňu —</div>
       <button class="btn btn-ghost" id="refresh-btn">Obnoviť</button>
@@ -456,6 +472,20 @@ function refreshGameLinks() {
       card.href = '#';
     }
   });
+}
+
+function renderApiKeyUI() {
+  const key = Leaderboard.getApiKey();
+  const createBtn = $('create-room-btn');
+  if (key) {
+    $('apikey-input').value = key;
+    $('apikey-step-num').textContent = '✓';
+    $('apikey-step-num').parentElement.parentElement.classList.add('step-done');
+    $('apikey-hint').innerHTML = 'Kľúč uložený — pripravený vytvoriť herňu.';
+    createBtn.disabled = false;
+  } else {
+    createBtn.disabled = true;
+  }
 }
 
 function renderRoomUI() {
@@ -515,6 +545,14 @@ function handleJoinRoom() {
   refreshLeaderboard();
   input.value = '';
   toast('Pripojené k herni');
+}
+
+function handleSaveApiKey() {
+  const v = $('apikey-input').value.trim();
+  if (!v) { toast('Vlož API kľúč'); return; }
+  Leaderboard.setApiKey(v);
+  renderApiKeyUI();
+  toast('Kľúč uložený');
 }
 
 function handleSavePlayer() {
@@ -587,13 +625,16 @@ function escapeHtml(s) {
 // Bind
 $('create-room-btn').addEventListener('click', handleCreateRoom);
 $('save-player-btn').addEventListener('click', handleSavePlayer);
+$('save-apikey-btn').addEventListener('click', handleSaveApiKey);
 $('copy-link-btn').addEventListener('click', copyShareLink);
 $('refresh-btn').addEventListener('click', refreshLeaderboard);
 $('join-room-btn').addEventListener('click', handleJoinRoom);
 $('player-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleSavePlayer(); });
 $('manual-room-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleJoinRoom(); });
+$('apikey-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleSaveApiKey(); });
 
 // Init
+renderApiKeyUI();
 renderRoomUI();
 renderPlayerUI();
 refreshGameLinks();

@@ -1,34 +1,57 @@
 // Shared leaderboard helper for Class Games.
-// Uses jsonblob.com — free, no signup, CORS-enabled JSON storage.
-// One "room" = one shared bin. The room ID lives in the URL hash so
-// any classmate opening the same link sees the same scoreboard.
+// Backed by jsonbin.io v3 — reliable, CORS-friendly, requires a free
+// API key (X-Master-Key) created by the teacher once at jsonbin.io.
 
-const LB_API = 'https://jsonblob.com/api/jsonBlob';
+const JB_API = 'https://api.jsonbin.io/v3/b';
+const LS_KEY = 'azia_apikey';
+const LS_BIN = 'azia_binid';
 const LS_PLAYER = 'azia_player';
-const LS_ROOM = 'azia_room';
 
-function readHashParams() {
+function readHash() {
   return new URLSearchParams(window.location.hash.replace(/^#/, ''));
 }
-
-function writeHashParams(params) {
+function writeHash(params) {
   history.replaceState(null, '', '#' + params.toString());
 }
 
-function getRoom() {
-  const fromHash = readHashParams().get('room');
+function getApiKey() {
+  const fromHash = readHash().get('key');
   if (fromHash) {
-    localStorage.setItem(LS_ROOM, fromHash);
+    localStorage.setItem(LS_KEY, fromHash);
     return fromHash;
   }
-  return localStorage.getItem(LS_ROOM);
+  return localStorage.getItem(LS_KEY) || '';
+}
+
+function setApiKey(key) {
+  const clean = (key || '').trim();
+  localStorage.setItem(LS_KEY, clean);
+  syncHash();
+  return clean;
+}
+
+function getRoom() {
+  const fromHash = readHash().get('room') || readHash().get('bin');
+  if (fromHash) {
+    localStorage.setItem(LS_BIN, fromHash);
+    return fromHash;
+  }
+  return localStorage.getItem(LS_BIN) || '';
 }
 
 function setRoom(id) {
-  localStorage.setItem(LS_ROOM, id);
-  const params = readHashParams();
-  params.set('room', id);
-  writeHashParams(params);
+  localStorage.setItem(LS_BIN, id);
+  syncHash();
+  return id;
+}
+
+function syncHash() {
+  const params = readHash();
+  const room = localStorage.getItem(LS_BIN);
+  const key = localStorage.getItem(LS_KEY);
+  if (room) params.set('room', room); else params.delete('room');
+  if (key) params.set('key', key); else params.delete('key');
+  writeHash(params);
 }
 
 function getPlayer() {
@@ -42,81 +65,93 @@ function setPlayer(name) {
 }
 
 async function createRoom() {
+  const key = getApiKey();
+  if (!key) throw new Error('Najprv vlož API key z jsonbin.io');
   const initial = { scores: [], createdAt: Date.now() };
   const ctrl = new AbortController();
-  const timeoutId = setTimeout(() => ctrl.abort(), 12000);
+  const timeoutId = setTimeout(() => ctrl.abort(), 15000);
   let res;
   try {
-    res = await fetch(LB_API, {
+    res = await fetch(JB_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': key,
+        'X-Bin-Private': 'false',
+        'X-Bin-Name': 'Class Games ' + new Date().toISOString().slice(0, 10)
+      },
       body: JSON.stringify(initial),
       signal: ctrl.signal
     });
   } catch (e) {
     clearTimeout(timeoutId);
-    if (e.name === 'AbortError') throw new Error('jsonblob.com sa neozýva (timeout)');
+    if (e.name === 'AbortError') throw new Error('jsonbin.io sa neozýva (timeout)');
     throw new Error('Sieťová chyba: ' + e.message);
   }
   clearTimeout(timeoutId);
-  if (!res.ok) throw new Error('jsonblob.com vrátil ' + res.status);
-  // Try multiple ways to get the new blob ID (CORS may hide some headers)
-  let id = null;
-  const loc = res.headers.get('Location') || res.headers.get('location');
-  const xjb = res.headers.get('X-jsonblob') || res.headers.get('x-jsonblob');
-  if (loc) id = loc.split('/').filter(Boolean).pop();
-  else if (xjb) id = xjb;
-  if (!id) {
-    // Some CORS configs hide all headers — peek at body
-    try {
-      const txt = await res.clone().text();
-      const m = txt.match(/[0-9]{15,}/);
-      if (m) id = m[0];
-    } catch {}
+  if (!res.ok) {
+    let detail = '';
+    try { detail = ' — ' + (await res.text()).slice(0, 120); } catch {}
+    throw new Error('jsonbin.io vrátil ' + res.status + detail);
   }
-  if (!id) throw new Error('Server odpovedal, ale nevidím ID herne (CORS môže blokovať hlavičky)');
+  const data = await res.json();
+  const id = data && data.metadata && data.metadata.id;
+  if (!id) throw new Error('jsonbin.io: odpoveď neobsahuje bin ID');
   setRoom(id);
   return id;
 }
 
 async function fetchScores() {
   const room = getRoom();
-  if (!room) return [];
-  const res = await fetch(`${LB_API}/${room}`, { headers: { 'Accept': 'application/json' } });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return Array.isArray(data.scores) ? data.scores : [];
+  const key = getApiKey();
+  if (!room || !key) return [];
+  try {
+    const res = await fetch(`${JB_API}/${room}/latest`, {
+      headers: { 'X-Master-Key': key, 'X-Bin-Meta': 'false' }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.scores) ? data.scores : [];
+  } catch (e) {
+    console.error('fetchScores', e);
+    return [];
+  }
 }
 
 async function submitScore(game, score, extras = {}) {
   const room = getRoom();
+  const key = getApiKey();
   const player = getPlayer();
-  if (!room || !player) return false;
+  if (!room || !key || !player) return false;
   try {
-    const getRes = await fetch(`${LB_API}/${room}`);
+    const getRes = await fetch(`${JB_API}/${room}/latest`, {
+      headers: { 'X-Master-Key': key, 'X-Bin-Meta': 'false' }
+    });
     if (!getRes.ok) return false;
     const data = await getRes.json();
     if (!Array.isArray(data.scores)) data.scores = [];
     data.scores.push({ player, game, score: Number(score) || 0, ts: Date.now(), ...extras });
-    const putRes = await fetch(`${LB_API}/${room}`, {
+    const putRes = await fetch(`${JB_API}/${room}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
       body: JSON.stringify(data)
     });
     return putRes.ok;
   } catch (e) {
-    console.error('submitScore failed', e);
+    console.error('submitScore', e);
     return false;
   }
 }
 
 function shareableUrl() {
   const room = getRoom();
+  const key = getApiKey();
   const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-  return room ? `${base}#room=${room}` : base;
+  if (!room || !key) return base;
+  const params = new URLSearchParams({ room, key });
+  return base + '#' + params.toString();
 }
 
-// Aggregate: best score per player per game, plus combined total
 function aggregate(scores) {
   const byPlayerGame = new Map();
   scores.forEach(s => {
@@ -135,7 +170,7 @@ function aggregate(scores) {
 }
 
 window.Leaderboard = {
-  getRoom, setRoom, getPlayer, setPlayer,
+  getRoom, setRoom, getApiKey, setApiKey, getPlayer, setPlayer,
   createRoom, fetchScores, submitScore,
   shareableUrl, aggregate
 };
