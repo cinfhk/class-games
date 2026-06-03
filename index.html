@@ -403,9 +403,24 @@
     </div>
   </div>
 
+  <!-- NO-ROOM HINT (student, no link) -->
+  <div class="frame" id="no-room-frame" style="display:none">
+    <span class="frame-label" id="no-room-label">① Pripoj sa</span>
+    <div class="step-row">
+      <span class="step-num">!</span>
+      <div style="flex:1; min-width:160px;">
+        <div class="step-title">Potrebuješ odkaz od učiteľa</div>
+        <div class="step-hint">Otvor odkaz, ktorý ti učiteľ poslal, alebo ho vlož sem.</div>
+      </div>
+      <input type="text" id="student-join-input" placeholder="vlož odkaz alebo ID herne…" autocomplete="off" style="font-family:'Space Mono',monospace;font-size:12px">
+      <button class="btn btn-gold" id="student-join-btn">Pripojiť</button>
+    </div>
+    <div id="student-join-error" style="display:none;margin-top:12px;padding:10px 14px;border-radius:3px;background:rgba(192,57,43,0.15);border-left:3px solid var(--red);color:#FFBCB0;font-size:13px;"></div>
+  </div>
+
   <!-- STEP 3: GAMES -->
-  <div class="frame">
-    <span class="frame-label">④ Hry</span>
+  <div class="frame" id="games-frame">
+    <span class="frame-label" id="games-label">④ Hry</span>
     <div class="games-grid">
       <a href="#" class="game-card disabled" id="card-quiz" data-game="asia-quiz.html">
         <div class="gc-char">問</div>
@@ -423,8 +438,8 @@
   </div>
 
   <!-- STEP 4: LEADERBOARD -->
-  <div class="frame">
-    <span class="frame-label">⑤ Rebríček</span>
+  <div class="frame" id="lb-frame">
+    <span class="frame-label" id="lb-label">⑤ Rebríček</span>
     <div class="lb-controls">
       <div class="lb-info" id="lb-info">— čaká sa na herňu —</div>
       <button class="btn btn-ghost" id="refresh-btn">Obnoviť</button>
@@ -435,7 +450,10 @@
   </div>
 
   <div class="footer-note">
-    Tip: zdieľaj odkaz spolužiakom — všetci uvidia rovnaký rebríček naživo.
+    <span id="footer-student-tip">Hraj, zbieraj body, vyhraj odmenu!</span>
+    <span id="footer-teacher-tip" style="display:none">Tip: zdieľaj odkaz spolužiakom — všetci uvidia rovnaký rebríček naživo.</span>
+    <br>
+    <a href="#" id="role-toggle" style="color:var(--muted);font-size:11px;letter-spacing:0.15em;text-transform:uppercase;font-family:'Cinzel',serif;">⚙ Som učiteľ</a>
   </div>
 </div>
 
@@ -524,6 +542,8 @@ async function handleCreateRoom() {
   btn.textContent = 'Vytváram…';
   try {
     await Leaderboard.createRoom();
+    Leaderboard.setTeacher(true);
+    renderRole();
     renderRoomUI();
     refreshGameLinks();
     refreshLeaderboard();
@@ -536,6 +556,65 @@ async function handleCreateRoom() {
     btn.disabled = false;
     btn.textContent = originalText;
   }
+}
+
+function handleStudentJoin() {
+  const input = $('student-join-input');
+  const errBox = $('student-join-error');
+  errBox.style.display = 'none';
+  try {
+    Leaderboard.setRoom(input.value.trim());
+  } catch (e) {
+    errBox.style.display = 'block';
+    errBox.innerHTML = '⚠ ' + escapeHtml(e.message) + '<br><small style="opacity:.8">Skontroluj, či má odkaz <code>room=</code> aj <code>key=</code>.</small>';
+    return;
+  }
+  renderApiKeyUI();
+  renderRole();
+  renderRoomUI();
+  refreshGameLinks();
+  refreshLeaderboard();
+  input.value = '';
+  toast('Pripojené');
+}
+
+function renderRole() {
+  const teacher = Leaderboard.isTeacher();
+  const hasRoom = !!Leaderboard.getRoom();
+  const hasKey = !!Leaderboard.getApiKey();
+  const studentMissingRoom = !teacher && (!hasRoom || !hasKey);
+
+  // Teacher-only frames
+  $('apikey-frame').style.display = teacher ? '' : 'none';
+  $('room-frame').style.display = teacher ? '' : 'none';
+
+  // Student "needs link" frame
+  $('no-room-frame').style.display = studentMissingRoom ? '' : 'none';
+
+  // Footer tip + toggle label
+  $('footer-teacher-tip').style.display = teacher ? '' : 'none';
+  $('footer-student-tip').style.display = teacher ? 'none' : '';
+  $('role-toggle').textContent = teacher ? '⚙ Skryť učiteľské nastavenia' : '⚙ Som učiteľ';
+
+  // Renumber visible frame labels: ①②③…
+  const order = [];
+  if (teacher) { order.push(['apikey-frame', 'API kľúč']); order.push(['room-frame', 'Trieda']); }
+  if (studentMissingRoom) order.push(['no-room-frame', 'Pripoj sa']);
+  order.push(['player-frame', 'Hráč']);
+  order.push(['games-frame', 'Hry']);
+  order.push(['lb-frame', 'Rebríček']);
+  const circled = ['①','②','③','④','⑤','⑥'];
+  order.forEach(([frameId, name], i) => {
+    const labelEl = $(frameId).querySelector('.frame-label');
+    if (labelEl) labelEl.textContent = circled[i] + ' ' + name;
+  });
+}
+
+function handleRoleToggle(e) {
+  e.preventDefault();
+  Leaderboard.setTeacher(!Leaderboard.isTeacher());
+  renderRole();
+  refreshGameLinks();
 }
 
 function handleJoinRoom() {
@@ -642,12 +721,21 @@ $('save-apikey-btn').addEventListener('click', handleSaveApiKey);
 $('copy-link-btn').addEventListener('click', copyShareLink);
 $('refresh-btn').addEventListener('click', refreshLeaderboard);
 $('join-room-btn').addEventListener('click', handleJoinRoom);
+$('student-join-btn').addEventListener('click', handleStudentJoin);
+$('role-toggle').addEventListener('click', handleRoleToggle);
 $('player-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleSavePlayer(); });
 $('manual-room-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleJoinRoom(); });
 $('apikey-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleSaveApiKey(); });
+$('student-join-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleStudentJoin(); });
 
-// Init
+// Init — if no room and no API key on first visit, default to teacher mode
+// (the only person who can do initial setup); otherwise students
+if (!Leaderboard.getRoom() && !Leaderboard.getApiKey() && !Leaderboard.isTeacher()) {
+  // First-ever visit: nothing to gate on, leave them in student mode.
+  // They'll see "Potrebuješ odkaz" with a way to switch via the toggle.
+}
 renderApiKeyUI();
+renderRole();
 renderRoomUI();
 renderPlayerUI();
 refreshGameLinks();

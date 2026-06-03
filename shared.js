@@ -6,6 +6,13 @@ const JB_API = 'https://api.jsonbin.io/v3/b';
 const LS_KEY = 'azia_apikey';
 const LS_BIN = 'azia_binid';
 const LS_PLAYER = 'azia_player';
+const LS_TEACHER = 'azia_is_teacher';
+
+function isTeacher() { return localStorage.getItem(LS_TEACHER) === '1'; }
+function setTeacher(v) {
+  if (v) localStorage.setItem(LS_TEACHER, '1');
+  else localStorage.removeItem(LS_TEACHER);
+}
 
 function readHash() {
   return new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -217,5 +224,6 @@ function aggregate(scores) {
 window.Leaderboard = {
   getRoom, setRoom, getApiKey, setApiKey, getPlayer, setPlayer,
   createRoom, fetchScores, submitScore,
-  shareableUrl, aggregate, parseRoomInput, isValidRoomId
+  shareableUrl, aggregate, parseRoomInput, isValidRoomId,
+  isTeacher, setTeacher
 };
