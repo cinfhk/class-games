@@ -12,7 +12,7 @@ const LS_TEACHER = 'azia_is_teacher';
 // Paste your jsonbin.io X-Master-Key here so students don't need to.
 // Rotate the key on jsonbin.io after every lesson to avoid abuse —
 // this repo is public, so anyone can read it.
-const CLASS_API_KEY = '';
+const CLASS_API_KEY = '$2a$10$yAFaloarFe1fmq4U9ZbqTuOSPkOvmje19t.Yy3Zd0Yik4SW0yfmzy';
 
 function isTeacher() {
   const hash = readHash();
