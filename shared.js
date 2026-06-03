@@ -8,9 +8,22 @@ const LS_BIN = 'azia_binid';
 const LS_PLAYER = 'azia_player';
 const LS_TEACHER = 'azia_is_teacher';
 
+// ⚠ Shared class API key for student mode.
+// Paste your jsonbin.io X-Master-Key here so students don't need to.
+// Rotate the key on jsonbin.io after every lesson to avoid abuse —
+// this repo is public, so anyone can read it.
+const CLASS_API_KEY = '';
+
 function isTeacher() {
-  // A `teacher=1` flag in the URL hash promotes this browser to teacher.
-  if (readHash().get('teacher') === '1') localStorage.setItem(LS_TEACHER, '1');
+  const hash = readHash();
+  if (hash.get('student') === '1') {
+    localStorage.removeItem(LS_TEACHER);
+    return false;
+  }
+  if (hash.get('teacher') === '1') {
+    localStorage.setItem(LS_TEACHER, '1');
+    return true;
+  }
   return localStorage.getItem(LS_TEACHER) === '1';
 }
 function setTeacher(v) {
@@ -36,12 +49,15 @@ function writeHash(params) {
 }
 
 function getApiKey() {
-  const fromHash = readHash().get('key');
-  if (fromHash) {
-    localStorage.setItem(LS_KEY, fromHash);
-    return fromHash;
+  const hash = readHash();
+  if (hash.get('key')) {
+    localStorage.setItem(LS_KEY, hash.get('key'));
+    return hash.get('key');
   }
-  return localStorage.getItem(LS_KEY) || '';
+  if (hash.get('student') === '1') {
+    return CLASS_API_KEY;
+  }
+  return localStorage.getItem(LS_KEY) || CLASS_API_KEY || '';
 }
 
 function setApiKey(key) {

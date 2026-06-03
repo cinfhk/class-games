@@ -409,10 +409,10 @@
     <div class="step-row">
       <span class="step-num">!</span>
       <div style="flex:1; min-width:160px;">
-        <div class="step-title">Potrebuješ odkaz od učiteľa</div>
-        <div class="step-hint">Otvor odkaz, ktorý ti učiteľ poslal, alebo ho vlož sem.</div>
+        <div class="step-title">Vlož ID herne, ktoré ti dal učiteľ</div>
+        <div class="step-hint">24 znakov, napríklad <code style="color:var(--gold)">6a2084b6f5f4af5e29b453b4</code></div>
       </div>
-      <input type="text" id="student-join-input" placeholder="vlož odkaz alebo ID herne…" autocomplete="off" style="font-family:'Space Mono',monospace;font-size:12px">
+      <input type="text" id="student-join-input" placeholder="vlož ID herne…" autocomplete="off" style="font-family:'Space Mono',monospace;font-size:12px">
       <button class="btn btn-gold" id="student-join-btn">Pripojiť</button>
     </div>
     <div id="student-join-error" style="display:none;margin-top:12px;padding:10px 14px;border-radius:3px;background:rgba(192,57,43,0.15);border-left:3px solid var(--red);color:#FFBCB0;font-size:13px;"></div>
@@ -459,7 +459,7 @@
 
 <div class="toast" id="toast">Hotovo</div>
 
-<script src="shared.js?v=5"></script>
+<script src="shared.js?v=6"></script>
 <script>
 const $ = id => document.getElementById(id);
 
@@ -514,12 +514,12 @@ function renderRoomUI() {
   if (room) {
     $('room-step-num').textContent = '✓';
     $('room-step-num').parentElement.parentElement.classList.add('step-done');
-    $('room-hint').textContent = 'Herňa ID: ' + room;
+    $('room-hint').innerHTML = 'Pošli žiakom <strong style="color:var(--gold)">odkaz</strong> <code>…/#student=1</code> a <strong style="color:var(--gold)">ID herne</strong>:';
     $('create-room-btn').textContent = 'Nová herňa';
     $('create-room-btn').classList.remove('btn-primary');
     $('create-room-btn').classList.add('btn-ghost');
-    const url = Leaderboard.shareableUrl();
-    $('share-link').textContent = url;
+    $('share-link').textContent = room;
+    $('share-link').style.fontSize = '14px';
     $('share-row').style.display = 'flex';
   }
 }
@@ -591,10 +591,11 @@ function renderRole() {
   // Student "needs link" frame
   $('no-room-frame').style.display = studentMissingRoom ? '' : 'none';
 
-  // Footer tip + toggle label
+  // Footer tip + toggle label (toggle only visible to teacher to avoid student exposure)
   $('footer-teacher-tip').style.display = teacher ? '' : 'none';
   $('footer-student-tip').style.display = teacher ? 'none' : '';
-  $('role-toggle').textContent = teacher ? '⚙ Skryť učiteľské nastavenia' : '⚙ Som učiteľ';
+  $('role-toggle').style.display = teacher ? '' : 'none';
+  $('role-toggle').textContent = '⚙ Skryť učiteľské nastavenia';
 
   // Renumber visible frame labels: ①②③…
   const order = [];
@@ -657,16 +658,16 @@ function handleSavePlayer() {
 }
 
 async function copyShareLink() {
-  const url = $('share-link').textContent;
+  const room = Leaderboard.getRoom();
+  if (!room) { toast('Najprv vytvor herňu'); return; }
   try {
-    await navigator.clipboard.writeText(url);
-    toast('Skopírované');
+    await navigator.clipboard.writeText(room);
+    toast('ID herne skopírované');
   } catch {
-    // fallback
     const ta = document.createElement('textarea');
-    ta.value = url; document.body.appendChild(ta); ta.select();
+    ta.value = room; document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); ta.remove();
-    toast('Skopírované');
+    toast('ID herne skopírované');
   }
 }
 
