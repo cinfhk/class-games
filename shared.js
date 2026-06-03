@@ -8,10 +8,24 @@ const LS_BIN = 'azia_binid';
 const LS_PLAYER = 'azia_player';
 const LS_TEACHER = 'azia_is_teacher';
 
-function isTeacher() { return localStorage.getItem(LS_TEACHER) === '1'; }
+function isTeacher() {
+  // A `teacher=1` flag in the URL hash promotes this browser to teacher.
+  if (readHash().get('teacher') === '1') localStorage.setItem(LS_TEACHER, '1');
+  return localStorage.getItem(LS_TEACHER) === '1';
+}
 function setTeacher(v) {
   if (v) localStorage.setItem(LS_TEACHER, '1');
   else localStorage.removeItem(LS_TEACHER);
+}
+
+function teacherUrl() {
+  const room = localStorage.getItem(LS_BIN);
+  const key = localStorage.getItem(LS_KEY);
+  const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+  const params = new URLSearchParams({ teacher: '1' });
+  if (room) params.set('room', room);
+  if (key) params.set('key', key);
+  return base + '#' + params.toString();
 }
 
 function readHash() {
@@ -224,6 +238,6 @@ function aggregate(scores) {
 window.Leaderboard = {
   getRoom, setRoom, getApiKey, setApiKey, getPlayer, setPlayer,
   createRoom, fetchScores, submitScore,
-  shareableUrl, aggregate, parseRoomInput, isValidRoomId,
+  shareableUrl, teacherUrl, aggregate, parseRoomInput, isValidRoomId,
   isTeacher, setTeacher
 };
