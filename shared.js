@@ -30,19 +30,54 @@ function setApiKey(key) {
   return clean;
 }
 
+function isValidRoomId(s) {
+  // jsonbin IDs are short alphanumeric strings. Reject anything that
+  // looks like a URL or contains structural characters.
+  return /^[A-Za-z0-9_-]{6,60}$/.test(String(s || ''));
+}
+
+// Parse a room ID out of arbitrary input — accepts raw IDs or pasted share URLs.
+function parseRoomInput(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  // If it contains a hash with room=, pull that out
+  if (s.includes('#')) {
+    try {
+      const u = new URL(s, window.location.href);
+      const params = new URLSearchParams(u.hash.replace(/^#/, ''));
+      const r = params.get('room') || params.get('bin');
+      if (r && isValidRoomId(r)) {
+        // Also extract key if present
+        const k = params.get('key');
+        if (k) localStorage.setItem(LS_KEY, k);
+        return r;
+      }
+    } catch {}
+  }
+  return isValidRoomId(s) ? s : '';
+}
+
 function getRoom() {
   const fromHash = readHash().get('room') || readHash().get('bin');
-  if (fromHash) {
+  if (fromHash && isValidRoomId(fromHash)) {
     localStorage.setItem(LS_BIN, fromHash);
     return fromHash;
   }
-  return localStorage.getItem(LS_BIN) || '';
+  const stored = localStorage.getItem(LS_BIN) || '';
+  if (stored && !isValidRoomId(stored)) {
+    // Clean up corrupted value
+    localStorage.removeItem(LS_BIN);
+    return '';
+  }
+  return stored;
 }
 
 function setRoom(id) {
-  localStorage.setItem(LS_BIN, id);
+  const clean = parseRoomInput(id);
+  if (!clean) throw new Error('Neplatné ID herne');
+  localStorage.setItem(LS_BIN, clean);
   syncHash();
-  return id;
+  return clean;
 }
 
 function syncHash() {
@@ -172,5 +207,5 @@ function aggregate(scores) {
 window.Leaderboard = {
   getRoom, setRoom, getApiKey, setApiKey, getPlayer, setPlayer,
   createRoom, fetchScores, submitScore,
-  shareableUrl, aggregate
+  shareableUrl, aggregate, parseRoomInput, isValidRoomId
 };

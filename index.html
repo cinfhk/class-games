@@ -460,13 +460,16 @@ function markDone(stepId, doneText) {
 }
 
 function refreshGameLinks() {
-  const ready = Leaderboard.getRoom() && Leaderboard.getPlayer();
+  const room = Leaderboard.getRoom();
+  const key = Leaderboard.getApiKey();
+  const player = Leaderboard.getPlayer();
+  const ready = room && key && player;
   ['card-quiz', 'card-hangman'].forEach(id => {
     const card = $(id);
     if (ready) {
       card.classList.remove('disabled');
-      const room = Leaderboard.getRoom();
-      card.href = card.dataset.game + '#room=' + room;
+      const params = new URLSearchParams({ room, key });
+      card.href = card.dataset.game + '#' + params.toString();
     } else {
       card.classList.add('disabled');
       card.href = '#';
@@ -537,13 +540,23 @@ async function handleCreateRoom() {
 
 function handleJoinRoom() {
   const input = $('manual-room-input');
-  const id = input.value.trim();
-  if (!id) { toast('Vlož ID herne'); return; }
-  Leaderboard.setRoom(id);
+  const raw = input.value.trim();
+  if (!raw) { toast('Vlož ID herne'); return; }
+  try {
+    Leaderboard.setRoom(raw);
+  } catch (e) {
+    toast('Neplatné ID');
+    $('room-error').style.display = 'block';
+    $('room-error').innerHTML = '⚠ ' + escapeHtml(e.message);
+    return;
+  }
+  // setRoom may also have extracted a key from a share URL
+  renderApiKeyUI();
   renderRoomUI();
   refreshGameLinks();
   refreshLeaderboard();
   input.value = '';
+  $('room-error').style.display = 'none';
   toast('Pripojené k herni');
 }
 
