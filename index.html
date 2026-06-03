@@ -366,6 +366,11 @@
       <div class="share-link" id="share-link"></div>
       <button class="btn btn-gold" id="copy-link-btn">Kopírovať</button>
     </div>
+    <div id="room-error" style="display:none;margin-top:12px;padding:10px 14px;border-radius:3px;background:rgba(192,57,43,0.15);border-left:3px solid var(--red);color:#FFBCB0;font-size:13px;line-height:1.5;"></div>
+    <div class="share-row" style="margin-top:12px">
+      <input type="text" id="manual-room-input" placeholder="alebo vlož ID existujúcej herne…" maxlength="40" autocomplete="off" style="font-family:'Space Mono',monospace;font-size:12px">
+      <button class="btn btn-ghost" id="join-room-btn">Pripojiť</button>
+    </div>
   </div>
 
   <!-- STEP 2: PLAYER -->
@@ -479,6 +484,9 @@ function renderPlayerUI() {
 
 async function handleCreateRoom() {
   const btn = $('create-room-btn');
+  const errBox = $('room-error');
+  const originalText = Leaderboard.getRoom() ? 'Nová herňa' : 'Vytvoriť herňu';
+  errBox.style.display = 'none';
   btn.disabled = true;
   btn.textContent = 'Vytváram…';
   try {
@@ -488,11 +496,25 @@ async function handleCreateRoom() {
     refreshLeaderboard();
     toast('Herňa vytvorená');
   } catch (e) {
-    toast('Chyba pri vytváraní');
     console.error(e);
+    errBox.style.display = 'block';
+    errBox.innerHTML = '⚠ ' + escapeHtml(e.message || String(e)) + '<br><small style="opacity:.8">Skús to znova, alebo vlož ID existujúcej herne nižšie.</small>';
   } finally {
     btn.disabled = false;
+    btn.textContent = originalText;
   }
+}
+
+function handleJoinRoom() {
+  const input = $('manual-room-input');
+  const id = input.value.trim();
+  if (!id) { toast('Vlož ID herne'); return; }
+  Leaderboard.setRoom(id);
+  renderRoomUI();
+  refreshGameLinks();
+  refreshLeaderboard();
+  input.value = '';
+  toast('Pripojené k herni');
 }
 
 function handleSavePlayer() {
@@ -567,7 +589,9 @@ $('create-room-btn').addEventListener('click', handleCreateRoom);
 $('save-player-btn').addEventListener('click', handleSavePlayer);
 $('copy-link-btn').addEventListener('click', copyShareLink);
 $('refresh-btn').addEventListener('click', refreshLeaderboard);
+$('join-room-btn').addEventListener('click', handleJoinRoom);
 $('player-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleSavePlayer(); });
+$('manual-room-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleJoinRoom(); });
 
 // Init
 renderRoomUI();

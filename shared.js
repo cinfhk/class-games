@@ -43,15 +43,38 @@ function setPlayer(name) {
 
 async function createRoom() {
   const initial = { scores: [], createdAt: Date.now() };
-  const res = await fetch(LB_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(initial)
-  });
-  if (!res.ok) throw new Error('Create room failed: ' + res.status);
-  const location = res.headers.get('Location') || '';
-  const id = location.split('/').pop();
-  if (!id) throw new Error('No room id returned');
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(() => ctrl.abort(), 12000);
+  let res;
+  try {
+    res = await fetch(LB_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(initial),
+      signal: ctrl.signal
+    });
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') throw new Error('jsonblob.com sa neozýva (timeout)');
+    throw new Error('Sieťová chyba: ' + e.message);
+  }
+  clearTimeout(timeoutId);
+  if (!res.ok) throw new Error('jsonblob.com vrátil ' + res.status);
+  // Try multiple ways to get the new blob ID (CORS may hide some headers)
+  let id = null;
+  const loc = res.headers.get('Location') || res.headers.get('location');
+  const xjb = res.headers.get('X-jsonblob') || res.headers.get('x-jsonblob');
+  if (loc) id = loc.split('/').filter(Boolean).pop();
+  else if (xjb) id = xjb;
+  if (!id) {
+    // Some CORS configs hide all headers — peek at body
+    try {
+      const txt = await res.clone().text();
+      const m = txt.match(/[0-9]{15,}/);
+      if (m) id = m[0];
+    } catch {}
+  }
+  if (!id) throw new Error('Server odpovedal, ale nevidím ID herne (CORS môže blokovať hlavičky)');
   setRoom(id);
   return id;
 }
