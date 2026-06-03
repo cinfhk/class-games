@@ -30,54 +30,64 @@ function setApiKey(key) {
   return clean;
 }
 
-function isValidRoomId(s) {
-  // jsonbin IDs are short alphanumeric strings. Reject anything that
-  // looks like a URL or contains structural characters.
-  return /^[A-Za-z0-9_-]{6,60}$/.test(String(s || ''));
+// jsonbin bin IDs are 24-char lowercase hex strings.
+function isValidRoomId(id) {
+  return /^[a-f0-9]{24}$/i.test(String(id || ''));
 }
 
-// Parse a room ID out of arbitrary input — accepts raw IDs or pasted share URLs.
+// Accept raw IDs, share URLs, or `room=…&key=…` hash strings.
+// Also extracts and stores the API key if found.
 function parseRoomInput(raw) {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  // If it contains a hash with room=, pull that out
-  if (s.includes('#')) {
-    try {
-      const u = new URL(s, window.location.href);
-      const params = new URLSearchParams(u.hash.replace(/^#/, ''));
-      const r = params.get('room') || params.get('bin');
-      if (r && isValidRoomId(r)) {
-        // Also extract key if present
-        const k = params.get('key');
-        if (k) localStorage.setItem(LS_KEY, k);
-        return r;
-      }
-    } catch {}
+  if (!raw) return '';
+  raw = String(raw).trim();
+  // Try parsing as a full URL
+  try {
+    const url = new URL(raw);
+    const hash = url.hash.startsWith('#') ? url.hash.slice(1) : url.hash;
+    const params = new URLSearchParams(hash);
+    const room = params.get('room') || params.get('bin');
+    const key = params.get('key');
+    if (key) setApiKey(key);
+    if (room && isValidRoomId(room)) return room;
+  } catch (_) {}
+  // Maybe it's a bare hash/query string
+  if (raw.includes('room=') || raw.includes('bin=')) {
+    const cleaned = raw.replace(/^#/, '');
+    const params = new URLSearchParams(cleaned);
+    const room = params.get('room') || params.get('bin');
+    const key = params.get('key');
+    if (key) setApiKey(key);
+    if (room && isValidRoomId(room)) return room;
   }
-  return isValidRoomId(s) ? s : '';
+  // Or a raw ID
+  if (isValidRoomId(raw)) return raw;
+  return '';
 }
 
 function getRoom() {
-  const fromHash = readHash().get('room') || readHash().get('bin');
-  if (fromHash && isValidRoomId(fromHash)) {
-    localStorage.setItem(LS_BIN, fromHash);
-    return fromHash;
-  }
-  const stored = localStorage.getItem(LS_BIN) || '';
-  if (stored && !isValidRoomId(stored)) {
-    // Clean up corrupted value
+  const raw =
+    readHash().get('room') ||
+    readHash().get('bin') ||
+    localStorage.getItem(LS_BIN) ||
+    '';
+  const room = parseRoomInput(raw);
+  if (!room) {
     localStorage.removeItem(LS_BIN);
     return '';
   }
-  return stored;
+  localStorage.setItem(LS_BIN, room);
+  return room;
 }
 
-function setRoom(id) {
-  const clean = parseRoomInput(id);
-  if (!clean) throw new Error('Neplatné ID herne');
-  localStorage.setItem(LS_BIN, clean);
+function setRoom(raw) {
+  const room = parseRoomInput(raw);
+  if (!room) {
+    localStorage.removeItem(LS_BIN);
+    throw new Error('Neplatné ID herne (musí byť 24 hex znakov)');
+  }
+  localStorage.setItem(LS_BIN, room);
   syncHash();
-  return clean;
+  return room;
 }
 
 function syncHash() {
