@@ -33,11 +33,9 @@ function setTeacher(v) {
 
 function teacherUrl() {
   const room = localStorage.getItem(LS_BIN);
-  const key = localStorage.getItem(LS_KEY);
   const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
   const params = new URLSearchParams({ teacher: '1' });
   if (room) params.set('room', room);
-  if (key) params.set('key', key);
   return base + '#' + params.toString();
 }
 
@@ -49,15 +47,7 @@ function writeHash(params) {
 }
 
 function getApiKey() {
-  const hash = readHash();
-  if (hash.get('key')) {
-    localStorage.setItem(LS_KEY, hash.get('key'));
-    return hash.get('key');
-  }
-  if (hash.get('student') === '1') {
-    return CLASS_API_KEY;
-  }
-  return localStorage.getItem(LS_KEY) || CLASS_API_KEY || '';
+  return CLASS_API_KEY || localStorage.getItem(LS_KEY) || '';
 }
 
 function setApiKey(key) {
@@ -102,9 +92,16 @@ function parseRoomInput(raw) {
 }
 
 function getRoom() {
+  const hash = readHash();
+  // Student page should not auto-join old/cached rooms.
+  // Student must paste the room ID manually.
+  if (hash.get('student') === '1' && !hash.get('room') && !hash.get('bin')) {
+    localStorage.removeItem(LS_BIN);
+    return '';
+  }
   const raw =
-    readHash().get('room') ||
-    readHash().get('bin') ||
+    hash.get('room') ||
+    hash.get('bin') ||
     localStorage.getItem(LS_BIN) ||
     '';
   const room = parseRoomInput(raw);
@@ -130,9 +127,12 @@ function setRoom(raw) {
 function syncHash() {
   const params = readHash();
   const room = localStorage.getItem(LS_BIN);
-  const key = localStorage.getItem(LS_KEY);
-  if (room) params.set('room', room); else params.delete('room');
-  if (key) params.set('key', key); else params.delete('key');
+  if (room && params.get('teacher') === '1') {
+    params.set('room', room);
+  } else {
+    params.delete('room');
+  }
+  params.delete('key');
   writeHash(params);
 }
 
@@ -226,12 +226,8 @@ async function submitScore(game, score, extras = {}) {
 }
 
 function shareableUrl() {
-  const room = getRoom();
-  const key = getApiKey();
   const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-  if (!room || !key) return base;
-  const params = new URLSearchParams({ room, key });
-  return base + '#' + params.toString();
+  return base + '#student=1';
 }
 
 function aggregate(scores) {
