@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ázia: Taiwan, Mongolsko & Čína</title>
+<script src="shared.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Cinzel:wght@700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #C0392B;
+    --gold: #D4A017;
+    --dark: #1A0A00;
+    --paper: #F5ECD7;
+    --ink: #2C1A0E;
+    --jade: #2E8B57;
+    --sky: #1B4F8A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--paper);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(192,57,43,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(212,160,23,0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(46,139,87,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Dragon pattern overlay */
+  body::after {
+    content: '龍';
+    position: fixed;
+    font-size: 40vw;
+    color: rgba(255,255,255,0.02);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    font-family: 'Noto Serif SC', serif;
+    z-index: 0;
+  }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; width: 100%; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ---- DECORATIVE BORDER ---- */
+  .frame {
+    border: 2px solid var(--gold);
+    border-radius: 4px;
+    position: relative;
+    padding: 40px 30px;
+    width: 100%;
+    box-shadow: 0 0 40px rgba(212,160,23,0.15), inset 0 0 40px rgba(0,0,0,0.3);
+    background: rgba(26, 10, 0, 0.85);
+    backdrop-filter: blur(10px);
+  }
+
+  .frame::before, .frame::after {
+    content: '◈';
+    position: absolute;
+    color: var(--gold);
+    font-size: 20px;
+  }
+  .frame::before { top: -12px; left: 50%; transform: translateX(-50%); }
+  .frame::after { bottom: -12px; left: 50%; transform: translateX(-50%); }
+
+  .corner {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--gold);
+    border-style: solid;
+  }
+  .corner.tl { top: 6px; left: 6px; border-width: 2px 0 0 2px; }
+  .corner.tr { top: 6px; right: 6px; border-width: 2px 2px 0 0; }
+  .corner.bl { bottom: 6px; left: 6px; border-width: 0 0 2px 2px; }
+  .corner.br { bottom: 6px; right: 6px; border-width: 0 2px 2px 0; }
+
+  /* ---- TITLE SCREEN ---- */
+  .title-chinese {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(40px, 8vw, 80px);
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(212,160,23,0.5);
+    letter-spacing: 0.1em;
+    text-align: center;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .title-main {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(16px, 3vw, 24px);
+    color: var(--paper);
+    text-align: center;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.9;
+  }
+
+  .title-sub {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: rgba(245,236,215,0.6);
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .country-flags {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 30px;
+    font-size: 40px;
+  }
+
+  .flag-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .flag-label {
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-family: 'Cinzel', serif;
+  }
+
+  .info-bar {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+
+  .info-chip {
+    background: rgba(212,160,23,0.1);
+    border: 1px solid rgba(212,160,23,0.3);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 14px 40px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--red), #8B0000);
+    color: var(--paper);
+    box-shadow: 0 4px 20px rgba(192,57,43,0.4);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #E74C3C, var(--red));
+    box-shadow: 0 6px 30px rgba(192,57,43,0.6);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    clip-path: none;
+    border-radius: 2px;
+    padding: 10px 24px;
+    font-size: 12px;
+  }
+  .btn-secondary:hover {
+    background: rgba(212,160,23,0.1);
+  }
+
+  /* ---- PROGRESS ---- */
+  .progress-wrap {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .progress-label {
+    font-size: 12px;
+    color: rgba(245,236,215,0.5);
+    letter-spacing: 0.1em;
+    font-family: 'Cinzel', serif;
+  }
+
+  .score-display {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--gold);
+  }
+
+  .progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--gold));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(212,160,23,0.5);
+  }
+
+  /* ---- QUESTION ---- */
+  .category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(212,160,23,0.1);
+    border: 1px solid rgba(212,160,23,0.4);
+    border-radius: 2px;
+    padding: 5px 14px;
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-family: 'Cinzel', serif;
+    margin-bottom: 20px;
+  }
+
+  .question-number {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 48px;
+    color: rgba(212,160,23,0.15);
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .question-text {
+    font-size: clamp(17px, 2.5vw, 22px);
+    line-height: 1.6;
+    color: var(--paper);
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  /* ---- ANSWERS ---- */
+  .answers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 500px) {
+    .answers-grid { grid-template-columns: 1fr; }
+  }
+
+  .answer-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--paper);
+    padding: 14px 18px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Crimson Pro', serif;
+    font-size: 16px;
+    line-height: 1.4;
+    border-radius: 3px;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .answer-btn::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--gold);
+    transform: scaleY(0);
+    transition: transform 0.2s ease;
+  }
+
+  .answer-btn:hover:not(:disabled) {
+    background: rgba(212,160,23,0.08);
+    border-color: rgba(212,160,23,0.4);
+    transform: translateX(3px);
+  }
+  .answer-btn:hover:not(:disabled)::before { transform: scaleY(1); }
+
+  .answer-letter {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: var(--gold);
+    opacity: 0.7;
+    min-width: 16px;
+    margin-top: 2px;
+  }
+
+  .answer-btn.correct {
+    background: rgba(46,139,87,0.2);
+    border-color: var(--jade);
+    color: #7FDEAA;
+  }
+  .answer-btn.correct::before { background: var(--jade); transform: scaleY(1); }
+
+  .answer-btn.wrong {
+    background: rgba(192,57,43,0.2);
+    border-color: var(--red);
+    color: #FF9980;
+  }
+  .answer-btn.wrong::before { background: var(--red); transform: scaleY(1); }
+
+  .answer-btn:disabled { cursor: default; }
+
+  /* ---- FEEDBACK ---- */
+  .feedback-box {
+    width: 100%;
+    padding: 16px 20px;
+    border-radius: 3px;
+    margin-bottom: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    display: none;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .feedback-box.correct {
+    background: rgba(46,139,87,0.15);
+    border-left: 3px solid var(--jade);
+    color: #A8F0C6;
+    display: block;
+  }
+  .feedback-box.wrong {
+    background: rgba(192,57,43,0.12);
+    border-left: 3px solid var(--red);
+    color: #FFBCB0;
+    display: block;
+  }
+
+  .feedback-icon { font-size: 18px; margin-right: 8px; }
+
+  /* ---- TIMER ---- */
+  .timer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .timer-ring {
+    width: 44px; height: 44px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .timer-ring svg {
+    transform: rotate(-90deg);
+    width: 44px; height: 44px;
+  }
+
+  .timer-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+  .timer-fill { fill: none; stroke: var(--gold); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+
+  .timer-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .timer-label {
+    font-size: 12px;
+    color: rgba(245,236,215,0.4);
+    letter-spacing: 0.1em;
+    font-family: 'Cinzel', serif;
+  }
+
+  .next-btn-wrap {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  /* ---- RESULTS ---- */
+  .result-score-big {
+    font-family: 'Noto Serif SC', serif;
+    font-size: clamp(60px, 12vw, 100px);
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(212,160,23,0.4);
+    line-height: 1;
+    text-align: center;
+    margin: 10px 0 5px;
+  }
+
+  .result-fraction {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: rgba(245,236,215,0.5);
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 0.2em;
+  }
+
+  .result-message {
+    font-style: italic;
+    font-size: 20px;
+    color: var(--paper);
+    text-align: center;
+    margin-bottom: 25px;
+    line-height: 1.5;
+  }
+
+  .result-breakdown {
+    width: 100%;
+    margin-bottom: 25px;
+  }
+
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px;
+  }
+  .breakdown-item:last-child { border-bottom: none; }
+
+  .breakdown-country {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(245,236,215,0.7);
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .breakdown-score {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--gold);
+  }
+
+  .mini-bar {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.06);
+    margin: 0 12px;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .mini-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--gold));
+    border-radius: 1px;
+    transition: width 1s ease;
+  }
+
+  .result-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ---- ANIMATIONS ---- */
+  .fade-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Divider */
+  .divider {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 16px auto;
+    opacity: 0.4;
+  }
+
+  .stamp {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 32px;
+    color: rgba(192,57,43,0.25);
+    border: 2px solid rgba(192,57,43,0.2);
+    border-radius: 4px;
+    padding: 4px 10px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    transform: rotate(12deg);
+    pointer-events: none;
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE SCREEN -->
+  <div id="screen-title" class="screen active">
+    <div class="frame fade-in">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+
+      <div class="title-chinese">東亞</div>
+      <div class="title-main">Vedomostný Kvíz</div>
+      <div class="title-sub">Taiwan · Mongolsko · Čína</div>
+
+      <div class="divider"></div>
+
+      <div class="country-flags">
+        <div class="flag-item">
+          <span>🇹🇼</span>
+          <span class="flag-label">Taiwan</span>
+        </div>
+        <div class="flag-item">
+          <span>🇲🇳</span>
+          <span class="flag-label">Mongolsko</span>
+        </div>
+        <div class="flag-item">
+          <span>🇨🇳</span>
+          <span class="flag-label">Čína</span>
+        </div>
+      </div>
+
+      <div class="info-bar">
+        <span class="info-chip">⏱ 20 sekúnd / otázka</span>
+        <span class="info-chip">📋 15 otázok</span>
+        <span class="info-chip">🏆 Získaj čo najviac bodov</span>
+      </div>
+
+      <div style="text-align:center">
+        <button class="btn btn-primary" onclick="startGame()">Začať kvíz</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div id="screen-question" class="screen">
+    <div class="frame" id="question-frame">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="stamp" id="stamp-char"></div>
+
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span class="progress-label" id="q-counter">Otázka 1 / 15</span>
+          <span class="score-display" id="score-display">Skóre: 0</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="timer-wrap">
+        <div class="timer-ring">
+          <svg viewBox="0 0 44 44">
+            <circle class="timer-bg" cx="22" cy="22" r="18"/>
+            <circle class="timer-fill" id="timer-circle" cx="22" cy="22" r="18"
+              stroke-dasharray="113.1" stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-text" id="timer-text">20</div>
+        </div>
+        <span class="timer-label">zostatok času</span>
+      </div>
+
+      <div class="category-tag" id="category-tag">🇨🇳 Čína</div>
+      <div class="question-number" id="q-number-bg">一</div>
+      <div class="question-text" id="question-text">Otázka...</div>
+
+      <div class="answers-grid" id="answers-grid"></div>
+
+      <div class="feedback-box" id="feedback-box"></div>
+
+      <div class="next-btn-wrap">
+        <button class="btn btn-secondary" id="next-btn" onclick="nextQuestion()" style="display:none">
+          Ďalej →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="screen">
+    <div class="frame fade-in">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+
+      <div style="text-align:center">
+        <div style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:0.3em;color:rgba(245,236,215,0.4);text-transform:uppercase;margin-bottom:8px;">Výsledok</div>
+        <div class="result-score-big" id="result-score">0</div>
+        <div class="result-fraction" id="result-fraction">0 / 15 správnych</div>
+        <div class="result-message" id="result-message">Dobrý pokus!</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="result-breakdown" id="result-breakdown"></div>
+
+      <div class="result-buttons">
+        <button class="btn btn-primary" onclick="restartGame()">Hrať znova</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const QUESTIONS = [
+  // CHINA
+  { country: 'Čína', flag: '🇨🇳', char: '中',
+    q: 'Koľko ľudí žije v Číne (zaokrúhlene)?',
+    a: ['Asi 800 miliónov', 'Asi 1,4 miliardy', 'Asi 2 miliardy', 'Asi 900 miliónov'],
+    correct: 1,
+    fact: '✅ Čína má okolo 1,4 miliardy obyvateľov a je jednou z dvoch najľudnatejších krajín sveta (spolu s Indiou).' },
+
+  { country: 'Čína', flag: '🇨🇳', char: '中',
+    q: 'Aká je hlavné mesto Číny?',
+    a: ['Šanghaj', 'Chongqing', 'Peking', 'Guangzhou'],
+    correct: 2,
+    fact: '✅ Peking (Beijing) je hlavné mesto Číny. Šanghaj je síce väčší a ekonomicky silnejší, ale Peking je politickým centrom.' },
+
+  { country: 'Čína', flag: '🇨🇳', char: '长',
+    q: 'Čínsky múr bol postavený hlavne na ochranu pred ktorými útočníkmi?',
+    a: ['Mongolmi a severnými kmeňmi', 'Japoncom', 'Rímskou ríšou', 'Peržanmi'],
+    correct: 0,
+    fact: '✅ Čínsky múr chránil ríšu pred nájazdmi mongolských a iných severných kočovných kmeňov. Výstavba trvala stáročia.' },
+
+  { country: 'Čína', flag: '🇨🇳', char: '河',
+    q: 'Aká rieka tečie cez Peking a je symbolom čínskej civilizácie?',
+    a: ['Jang-c\'- ťiang', 'Žltá rieka (Huang He)', 'Perlová rieka', 'Mekong'],
+    correct: 1,
+    fact: '✅ Žltá rieka (Huang He) sa nazýva „kolíska čínskej civilizácie". Jang-c\' ťiang je najdlhšia rieka Číny.' },
+
+  { country: 'Čína', flag: '🇨🇳', char: '熊',
+    q: 'Ktoré zviera je národným symbolom Číny a je ohrozené vyhynutím?',
+    a: ['Sibírsky tiger', 'Zlatá opica', 'Veľká panda', 'Žeriav mandžuský'],
+    correct: 2,
+    fact: '✅ Veľká panda je ikonickým symbolom Číny. V prírode ich žije len asi 1 800. Bambusový les je ich domovom.' },
+
+  // TAIWAN
+  { country: 'Taiwan', flag: '🇹🇼', char: '台',
+    q: 'Ako sa volá hlavné mesto Taiwanu?',
+    a: ['Tchaj-chung', 'Kao-siung', 'Tchaj-pej', 'Tainan'],
+    correct: 2,
+    fact: '✅ Tchaj-pej (Taipei) je hlavné mesto Taiwanu. Je to moderná metropola so slávnym mrakodrapom Taipei 101.' },
+
+  { country: 'Taiwan', flag: '🇹🇼', char: '101',
+    q: 'Aká je charakteristická stavba Taiwanu, ktorá bola kedysi najvyšší mrakodrap sveta?',
+    a: ['Taipei 101', 'Burj Khalifa', 'Petronas Twin Towers', 'Canton Tower'],
+    correct: 0,
+    fact: '✅ Taipei 101 bol od roku 2004 do 2010 najvyšší mrakodrap sveta (508 m). Jej tvar je inšpirovaný bambusom.' },
+
+  { country: 'Taiwan', flag: '🇹🇼', char: '島',
+    q: 'Čím je Taiwan svetoznámy v oblasti technológií?',
+    a: ['Výrobou automobilov', 'Výrobou čipov a polovodičov', 'Výrobou lietadiel', 'Ropným priemyslom'],
+    correct: 1,
+    fact: '✅ Taiwan je globalnym lídrom vo výrobe mikročipov. Spoločnosť TSMC vyrába čipy pre Apple, NVIDIA, AMD a ďalšie firmy.' },
+
+  { country: 'Taiwan', flag: '🇹🇼', char: '語',
+    q: 'Aký jazyk hovorí väčšina obyvateľov Taiwanu?',
+    a: ['Japončina', 'Kantončina', 'Mandarínska čínština', 'Kórejčina'],
+    correct: 2,
+    fact: '✅ Na Taiwane sa hovorí mandarínskou čínštinou (Putonghua). Taiwan má aj vlastné nárečia ako tchajwančina (hokkien).' },
+
+  { country: 'Taiwan', flag: '🇹🇼', char: '史',
+    q: 'Kto vládol Taiwanu pred vznikom Čínskej republiky na ostrove v roku 1949?',
+    a: ['Holanďania a potom Japonci', 'Briti', 'Francúzi', 'Španieli a potom Rusi'],
+    correct: 0,
+    fact: '✅ Taiwan ovládali postupne: Holanďania (1624–1662), Čína (dynastia Čching), a potom Japonsko (1895–1945) po čínsko-japonskej vojne.' },
+
+  // MONGOLIA
+  { country: 'Mongolsko', flag: '🇲🇳', char: '蒙',
+    q: 'Ako sa volá hlavné mesto Mongolska?',
+    a: ['Darkhan', 'Erdenet', 'Ulaanbaatar', 'Choibalsan'],
+    correct: 2,
+    fact: '✅ Ulaanbaatar (Ulánbátar) je hlavné mesto Mongolska. Žije tam asi polovica celého obyvateľstva krajiny.' },
+
+  { country: 'Mongolsko', flag: '🇲🇳', char: '汗',
+    q: 'Kto bol zakladateľom najväčšej pozemskej ríše v histórii?',
+    a: ['Kublaj Chán', 'Timur Lenk', 'Džingischán', 'Tamerláne'],
+    correct: 2,
+    fact: '✅ Džingischán (1162–1227) zjednotil mongolské kmene a vybudoval Mongolskú ríšu, ktorá sa rozprestrela od Tichého oceánu až po Európu.' },
+
+  { country: 'Mongolsko', flag: '🇲🇳', char: '草',
+    q: 'Ako sa volá tradičný mongolský stan (prenosný príbytok kočovníkov)?',
+    a: ['Tipi', 'Jurta (Ger)', 'Iglu', 'Yurt'],
+    correct: 1,
+    fact: '✅ Jurta (po mongolsky „Ger") je tradičný prenosný stan kočovníkov. Dá sa postaviť aj zbúrať za pár hodín.' },
+
+  { country: 'Mongolsko', flag: '🇲🇳', char: '馬',
+    q: 'Čím je Mongolsko svetoznáme v oblasti chovu zvierat?',
+    a: ['Chovom slonov', 'Chovom tiav a koní — má viac koní ako ľudí', 'Chovom jaknov v Himalájach', 'Chovom sobov'],
+    correct: 1,
+    fact: '✅ Mongolsko má asi 3,3 milióna obyvateľov, ale vyše 3,5 milióna koní! Kone sú kľúčovou súčasťou kultúry a nomádskeho životného štýlu.' },
+
+  { country: 'Mongolsko', flag: '🇲🇳', char: '沙',
+    q: 'Akú veľkú púšť nájdeme prevažne v Mongolsku a severnej Číne?',
+    a: ['Sahara', 'Atacama', 'Gobi', 'Kalahari'],
+    correct: 2,
+    fact: '✅ Púšť Gobi je najväčšia púšť Ázie a piata najväčšia na svete. Je domovom vzácnych druhov ako snežný leopard či dvojhrbý ťava baktrianská.' },
+];
+
+let currentQ = 0;
+let score = 0;
+let timer = null;
+let timeLeft = 20;
+let answered = false;
+let countryStats = { 'Čína': {c:0,t:0}, 'Taiwan': {c:0,t:0}, 'Mongolsko': {c:0,t:0} };
+const CIRCUMFERENCE = 113.1;
+const chineseNums = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五'];
+
+function startGame() {
+  currentQ = 0; score = 0; answered = false;
+  countryStats = { 'Čína': {c:0,t:0}, 'Taiwan': {c:0,t:0}, 'Mongolsko': {c:0,t:0} };
+  showScreen('question');
+  loadQuestion();
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = QUESTIONS[currentQ];
+  const frame = document.getElementById('question-frame');
+  frame.style.animation = 'none'; frame.offsetHeight;
+  frame.style.animation = 'fadeIn 0.4s ease';
+
+  document.getElementById('q-counter').textContent = `Otázka ${currentQ+1} / ${QUESTIONS.length}`;
+  document.getElementById('score-display').textContent = `Skóre: ${score}`;
+  document.getElementById('progress-fill').style.width = ((currentQ / QUESTIONS.length) * 100) + '%';
+  document.getElementById('category-tag').textContent = q.flag + ' ' + q.country;
+  document.getElementById('stamp-char').textContent = q.char;
+  document.getElementById('q-number-bg').textContent = chineseNums[currentQ];
+  document.getElementById('question-text').textContent = q.q;
+
+  const grid = document.getElementById('answers-grid');
+  grid.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+  q.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="answer-letter">${letters[i]}</span><span>${ans}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('feedback-box').className = 'feedback-box';
+  document.getElementById('next-btn').style.display = 'none';
+
+  countryStats[q.country].t++;
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timer);
+  timeLeft = 20;
+  updateTimer();
+  timer = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      if (!answered) timeUp();
+    }
+  }, 1000);
+}
+
+function updateTimer() {
+  const circle = document.getElementById('timer-circle');
+  const offset = CIRCUMFERENCE * (1 - timeLeft / 20);
+  circle.style.strokeDashoffset = offset;
+  const color = timeLeft > 10 ? '#D4A017' : timeLeft > 5 ? '#E67E22' : '#C0392B';
+  circle.style.stroke = color;
+  document.getElementById('timer-text').textContent = timeLeft;
+  document.getElementById('timer-text').style.color = color;
+}
+
+function timeUp() {
+  answered = true;
+  const q = QUESTIONS[currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+  });
+  showFeedback(false, `⏰ Čas vypršal! Správna odpoveď: ${q.a[q.correct]}\n\n${q.fact.replace('✅ ','')}`);
+  document.getElementById('next-btn').style.display = 'block';
+}
+
+function selectAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timer);
+  const q = QUESTIONS[currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const isCorrect = idx === q.correct;
+  btns[idx].classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) btns[q.correct].classList.add('correct');
+
+  if (isCorrect) {
+    score += Math.max(1, timeLeft); // bonus for speed
+    countryStats[q.country].c++;
+  }
+
+  document.getElementById('score-display').textContent = `Skóre: ${score}`;
+  showFeedback(isCorrect, q.fact.replace('✅ ', isCorrect ? '✅ ' : '❌ Nie! '));
+  document.getElementById('next-btn').style.display = 'block';
+}
+
+function showFeedback(correct, text) {
+  const box = document.getElementById('feedback-box');
+  box.className = 'feedback-box ' + (correct ? 'correct' : 'wrong');
+  box.textContent = text;
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= QUESTIONS.length) {
+    showResults();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResults() {
+  showScreen('results');
+  const total = QUESTIONS.length;
+  const correct = Object.values(countryStats).reduce((s, v) => s + v.c, 0);
+  const pct = Math.round((correct / total) * 100);
+
+  document.getElementById('result-score').textContent = score;
+  document.getElementById('result-fraction').textContent = `${correct} / ${total} správnych (${pct}%)`;
+
+  let msg, emoji;
+  if (pct === 100) { msg = 'Dokonalé! Si skutočný expert na Východnú Áziu!'; emoji = '🏆'; }
+  else if (pct >= 80) { msg = 'Výborne! Máš vynikajúce znalosti o Ázii.'; emoji = '🥇'; }
+  else if (pct >= 60) { msg = 'Dobrý výsledok! Ešte trochu a budeš expert.'; emoji = '🥈'; }
+  else if (pct >= 40) { msg = 'Slušný základ! Skús si prečítať viac o Ázii.'; emoji = '📚'; }
+  else { msg = 'Neboj sa, vedomosti prichádzajú so skúsenosťami!'; emoji = '🌱'; }
+
+  document.getElementById('result-message').textContent = emoji + ' ' + msg;
+
+  const breakdown = document.getElementById('result-breakdown');
+  breakdown.innerHTML = '';
+  [
+    { name: 'Čína', flag: '🇨🇳' },
+    { name: 'Taiwan', flag: '🇹🇼' },
+    { name: 'Mongolsko', flag: '🇲🇳' }
+  ].forEach(c => {
+    const stat = countryStats[c.name];
+    const pctC = stat.t ? Math.round((stat.c / stat.t) * 100) : 0;
+    breakdown.innerHTML += `
+      <div class="breakdown-item">
+        <div class="breakdown-country">${c.flag} ${c.name}</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:${pctC}%"></div></div>
+        <div class="breakdown-score">${stat.c}/${stat.t}</div>
+      </div>`;
+  });
+}
+
+function restartGame() {
+  showScreen('title');
+}
+
+const _origShowResults = showResults;
+showResults = function() {
+  _origShowResults();
+  const player = Leaderboard.getPlayer();
+  const room = Leaderboard.getRoom();
+  const banner = document.createElement('div');
+  banner.style.cssText = 'margin-top:14px;padding:10px 14px;border-radius:3px;font-family:Cinzel,serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;text-align:center;';
+  const breakdown = document.getElementById('result-breakdown');
+  if (!player || !room) {
+    banner.style.background = 'rgba(192,57,43,0.15)';
+    banner.style.color = '#FF9980';
+    banner.innerHTML = 'Skóre neuložené — <a href="index.html" style="color:#D4A017">nastav meno a herňu</a>';
+    breakdown.parentElement.insertBefore(banner, breakdown.nextSibling);
+    return;
+  }
+  banner.style.background = 'rgba(212,160,23,0.10)';
+  banner.style.color = '#D4A017';
+  banner.textContent = 'Odosielam skóre…';
+  breakdown.parentElement.insertBefore(banner, breakdown.nextSibling);
+  const correct = Object.values(countryStats).reduce((s, v) => s + v.c, 0);
+  Leaderboard.submitScore('quiz', score, { correct, total: QUESTIONS.length }).then(ok => {
+    if (ok) {
+      banner.style.background = 'rgba(46,139,87,0.20)';
+      banner.style.color = '#7FDEAA';
+      banner.innerHTML = `✓ Skóre ${score} odoslané · <a href="index.html#room=${room}" style="color:#7FDEAA;text-decoration:underline">otvoriť rebríček</a>`;
+    } else {
+      banner.style.background = 'rgba(192,57,43,0.15)';
+      banner.style.color = '#FF9980';
+      banner.textContent = 'Odoslanie zlyhalo — skús neskôr';
+    }
+  });
+};
+</script>
+</body>
+</html>

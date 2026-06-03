@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Games · Ázia</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Cinzel:wght@700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #C0392B;
+    --gold: #D4A017;
+    --dark: #1A0A00;
+    --paper: #F5ECD7;
+    --jade: #2E8B57;
+    --muted: rgba(245,236,215,0.55);
+    --border: rgba(212,160,23,0.25);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--paper);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(192,57,43,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(212,160,23,0.10) 0%, transparent 50%);
+    pointer-events:none;
+  }
+  body::after {
+    content:'亞';
+    position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    font-size:40vw; color:rgba(255,255,255,0.02);
+    font-family:'Noto Serif SC', serif;
+    pointer-events:none; z-index:0;
+  }
+
+  #app {
+    position:relative; z-index:1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align:center;
+    margin-bottom: 32px;
+  }
+  .title-cn {
+    font-family:'Noto Serif SC', serif;
+    font-size: clamp(48px, 9vw, 88px);
+    color: var(--gold);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(212,160,23,0.35);
+    margin-bottom: 8px;
+  }
+  .title-main {
+    font-family:'Cinzel', serif;
+    font-size: clamp(14px, 2.6vw, 22px);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--paper);
+    margin-bottom: 6px;
+  }
+  .title-sub {
+    font-family:'Crimson Pro', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  /* ── CARD/FRAME ── */
+  .frame {
+    border: 1px solid var(--gold);
+    background: rgba(26,10,0,0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 4px;
+    padding: 28px 28px;
+    margin-bottom: 22px;
+    box-shadow: 0 0 30px rgba(212,160,23,0.10), inset 0 0 30px rgba(0,0,0,0.3);
+    position: relative;
+  }
+  .frame-label {
+    position:absolute; top:-9px; left:24px;
+    background: var(--dark);
+    padding: 0 10px;
+    font-family:'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  /* ── SETUP STEPS ── */
+  .step-row {
+    display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+  }
+  .step-num {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    display: inline-flex; align-items:center; justify-content:center;
+    font-family:'Cinzel', serif; font-weight:700;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+  .step-done .step-num {
+    background: var(--jade); border-color: var(--jade); color: white;
+  }
+  .step-title {
+    font-family:'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--paper);
+  }
+  .step-hint {
+    font-size: 13px; color: var(--muted); font-style: italic;
+    margin-top: 2px;
+  }
+
+  input[type="text"] {
+    flex: 1; min-width: 180px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--paper);
+    padding: 10px 14px;
+    border-radius: 3px;
+    font-family:'Crimson Pro', serif;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: var(--gold); }
+
+  .btn {
+    font-family:'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 11px 22px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    border-radius: 2px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--red), #8B0000);
+    color: var(--paper);
+    box-shadow: 0 4px 14px rgba(192,57,43,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(192,57,43,0.5); }
+  .btn-gold {
+    background: var(--gold); color: var(--dark);
+  }
+  .btn-gold:hover { background: #E8B84B; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; color: var(--gold); border:1px solid var(--gold);
+  }
+  .btn-ghost:hover { background: rgba(212,160,23,0.1); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+
+  /* ── SHARE LINK ── */
+  .share-row {
+    display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .share-link {
+    flex: 1; min-width: 180px;
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed var(--border);
+    color: var(--gold);
+    padding: 10px 14px;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    border-radius: 3px;
+    overflow-x: auto; white-space: nowrap;
+  }
+
+  /* ── GAME CARDS ── */
+  .games-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 600px) {
+    .games-grid { grid-template-columns: 1fr; }
+  }
+
+  .game-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 22px 20px;
+    text-decoration: none;
+    color: var(--paper);
+    transition: all 0.25s;
+    position: relative;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .game-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(212,160,23,0.15);
+  }
+  .game-card.disabled {
+    pointer-events: none;
+    opacity: 0.4;
+  }
+  .gc-char {
+    font-family:'Noto Serif SC', serif;
+    font-size: 42px;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .gc-title {
+    font-family:'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--paper);
+  }
+  .gc-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .gc-arrow {
+    color: var(--gold);
+    font-family:'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    margin-top: 4px;
+  }
+
+  /* ── LEADERBOARD ── */
+  .lb-controls {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+  }
+  .lb-info {
+    font-size: 12px; color: var(--muted);
+    font-family:'Cinzel', serif; letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .lb-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .lb-table th {
+    text-align: left;
+    font-family:'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lb-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 15px;
+  }
+  .lb-table tr:last-child td { border-bottom: none; }
+  .rank {
+    font-family:'Cinzel', serif;
+    font-weight: 700;
+    color: var(--muted);
+    width: 40px;
+  }
+  .rank-1 { color: var(--gold); font-size: 18px; }
+  .rank-2 { color: #C0C0C0; }
+  .rank-3 { color: #CD7F32; }
+  .player-name {
+    font-family:'Crimson Pro', serif;
+    font-weight: 600;
+    color: var(--paper);
+  }
+  .score-cell {
+    font-family:'Space Mono', monospace;
+    color: var(--gold);
+    font-weight: 700;
+    text-align: right;
+  }
+  .game-pill {
+    display: inline-block;
+    font-family:'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(212,160,23,0.1);
+    color: var(--gold);
+    margin-right: 4px;
+  }
+  .empty {
+    text-align:center; padding: 30px;
+    color: var(--muted); font-style: italic;
+  }
+
+  /* status pills */
+  .pill {
+    display: inline-block;
+    font-family:'Cinzel', serif;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .pill-green { background: rgba(46,139,87,0.18); color: #7FDEAA; border:1px solid var(--jade); }
+  .pill-red { background: rgba(192,57,43,0.18); color: #FF9980; border:1px solid var(--red); }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--jade); color: white;
+    padding: 12px 24px; border-radius: 3px;
+    font-family:'Cinzel', serif; font-size: 12px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    opacity: 0; transition: all 0.3s;
+    pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .footer-note a { color: var(--gold); text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="title-cn">亞洲遊戲</div>
+    <div class="title-main">Class Games · Ázia</div>
+    <div class="title-sub">Hraj, zbieraj body — víťaz získa odmenu</div>
+  </header>
+
+  <!-- STEP 1: ROOM -->
+  <div class="frame" id="room-frame">
+    <span class="frame-label">① Trieda</span>
+    <div class="step-row">
+      <span class="step-num" id="room-step-num">1</span>
+      <div style="flex:1; min-width:160px;">
+        <div class="step-title">Vytvor herňu</div>
+        <div class="step-hint" id="room-hint">Klikni a vytvor zdieľaný leaderboard pre celú triedu.</div>
+      </div>
+      <button class="btn btn-primary" id="create-room-btn">Vytvoriť herňu</button>
+    </div>
+    <div class="share-row" id="share-row" style="display:none">
+      <div class="share-link" id="share-link"></div>
+      <button class="btn btn-gold" id="copy-link-btn">Kopírovať</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: PLAYER -->
+  <div class="frame" id="player-frame">
+    <span class="frame-label">② Hráč</span>
+    <div class="step-row">
+      <span class="step-num" id="player-step-num">2</span>
+      <div style="flex:1; min-width:160px;">
+        <div class="step-title">Tvoje meno</div>
+        <div class="step-hint">Pod týmto menom budú tvoje body v rebríčku.</div>
+      </div>
+      <input type="text" id="player-input" placeholder="napr. Marco" maxlength="24" autocomplete="off">
+      <button class="btn btn-gold" id="save-player-btn">Uložiť</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: GAMES -->
+  <div class="frame">
+    <span class="frame-label">③ Hry</span>
+    <div class="games-grid">
+      <a href="#" class="game-card disabled" id="card-quiz" data-game="asia-quiz.html">
+        <div class="gc-char">問</div>
+        <div class="gc-title">Vedomostný kvíz</div>
+        <div class="gc-desc">15 otázok · Taiwan, Mongolsko, Čína. Body za rýchle odpovede.</div>
+        <div class="gc-arrow">Hrať →</div>
+      </a>
+      <a href="#" class="game-card disabled" id="card-hangman" data-game="asia-hangman.html">
+        <div class="gc-char">猜</div>
+        <div class="gc-title">Hádaj slovo</div>
+        <div class="gc-desc">Hangman s ázijskou tematikou. Body za uhádnuté slová a sériu.</div>
+        <div class="gc-arrow">Hrať →</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- STEP 4: LEADERBOARD -->
+  <div class="frame">
+    <span class="frame-label">④ Rebríček</span>
+    <div class="lb-controls">
+      <div class="lb-info" id="lb-info">— čaká sa na herňu —</div>
+      <button class="btn btn-ghost" id="refresh-btn">Obnoviť</button>
+    </div>
+    <div id="lb-body">
+      <div class="empty">Vytvor herňu a začni hrať!</div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Tip: zdieľaj odkaz spolužiakom — všetci uvidia rovnaký rebríček naživo.
+  </div>
+</div>
+
+<div class="toast" id="toast">Hotovo</div>
+
+<script src="shared.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function markDone(stepId, doneText) {
+  $(stepId + '-step-num').parentElement.parentElement.classList.add('step-done');
+  $(stepId + '-step-num').textContent = '✓';
+  const hint = $(stepId + '-hint') || stepId === 'player';
+  // hint update handled by callers
+}
+
+function refreshGameLinks() {
+  const ready = Leaderboard.getRoom() && Leaderboard.getPlayer();
+  ['card-quiz', 'card-hangman'].forEach(id => {
+    const card = $(id);
+    if (ready) {
+      card.classList.remove('disabled');
+      const room = Leaderboard.getRoom();
+      card.href = card.dataset.game + '#room=' + room;
+    } else {
+      card.classList.add('disabled');
+      card.href = '#';
+    }
+  });
+}
+
+function renderRoomUI() {
+  const room = Leaderboard.getRoom();
+  if (room) {
+    $('room-step-num').textContent = '✓';
+    $('room-step-num').parentElement.parentElement.classList.add('step-done');
+    $('room-hint').textContent = 'Herňa ID: ' + room;
+    $('create-room-btn').textContent = 'Nová herňa';
+    $('create-room-btn').classList.remove('btn-primary');
+    $('create-room-btn').classList.add('btn-ghost');
+    const url = Leaderboard.shareableUrl();
+    $('share-link').textContent = url;
+    $('share-row').style.display = 'flex';
+  }
+}
+
+function renderPlayerUI() {
+  const player = Leaderboard.getPlayer();
+  if (player) {
+    $('player-input').value = player;
+    $('player-step-num').textContent = '✓';
+    $('player-step-num').parentElement.parentElement.classList.add('step-done');
+  }
+}
+
+async function handleCreateRoom() {
+  const btn = $('create-room-btn');
+  btn.disabled = true;
+  btn.textContent = 'Vytváram…';
+  try {
+    await Leaderboard.createRoom();
+    renderRoomUI();
+    refreshGameLinks();
+    refreshLeaderboard();
+    toast('Herňa vytvorená');
+  } catch (e) {
+    toast('Chyba pri vytváraní');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function handleSavePlayer() {
+  const name = $('player-input').value.trim();
+  if (!name) { toast('Zadaj meno'); return; }
+  Leaderboard.setPlayer(name);
+  renderPlayerUI();
+  refreshGameLinks();
+  toast('Meno uložené');
+}
+
+async function copyShareLink() {
+  const url = $('share-link').textContent;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Skopírované');
+  } catch {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    toast('Skopírované');
+  }
+}
+
+async function refreshLeaderboard() {
+  const room = Leaderboard.getRoom();
+  const info = $('lb-info');
+  const body = $('lb-body');
+  if (!room) {
+    info.textContent = '— čaká sa na herňu —';
+    body.innerHTML = '<div class="empty">Vytvor herňu a začni hrať!</div>';
+    return;
+  }
+  info.textContent = 'Načítavam…';
+  const scores = await Leaderboard.fetchScores();
+  const totals = Leaderboard.aggregate(scores);
+  info.textContent = `${totals.length} hráč${totals.length === 1 ? '' : 'ov'} · ${scores.length} pokusov`;
+
+  if (totals.length === 0) {
+    body.innerHTML = '<div class="empty">Zatiaľ nikto nehral. Buď prvý!</div>';
+    return;
+  }
+
+  const rows = totals.slice(0, 20).map((t, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? 'rank rank-' + rank : 'rank';
+    const medal = rank === 1 ? '🏆' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+    const games = [];
+    if (t.perGame.quiz) games.push(`<span class="game-pill">Kvíz ${t.perGame.quiz}</span>`);
+    if (t.perGame.hangman) games.push(`<span class="game-pill">Hangman ${t.perGame.hangman}</span>`);
+    return `<tr>
+      <td class="${rankClass}">${medal}</td>
+      <td class="player-name">${escapeHtml(t.player)}</td>
+      <td>${games.join('')}</td>
+      <td class="score-cell">${t.total}</td>
+    </tr>`;
+  }).join('');
+
+  body.innerHTML = `<table class="lb-table">
+    <thead><tr><th></th><th>Hráč</th><th>Hry</th><th style="text-align:right">Spolu</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Bind
+$('create-room-btn').addEventListener('click', handleCreateRoom);
+$('save-player-btn').addEventListener('click', handleSavePlayer);
+$('copy-link-btn').addEventListener('click', copyShareLink);
+$('refresh-btn').addEventListener('click', refreshLeaderboard);
+$('player-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleSavePlayer(); });
+
+// Init
+renderRoomUI();
+renderPlayerUI();
+refreshGameLinks();
+refreshLeaderboard();
+// Auto-refresh every 8s
+setInterval(refreshLeaderboard, 8000);
+</script>
+</body>
+</html>

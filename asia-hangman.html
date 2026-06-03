@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hádaj Slovo – Ázia</title>
+<script src="shared.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC&family=Shippori+Mincho:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D1117;
+    --panel: #161B22;
+    --border: #30363D;
+    --red: #E05252;
+    --gold: #E8B84B;
+    --green: #56D364;
+    --blue: #58A6FF;
+    --muted: #8B949E;
+    --text: #E6EDF3;
+    --ink: #0D1117;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none;
+  }
+
+  #game {
+    width: 100%;
+    max-width: 780px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 26px;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+  }
+
+  .logo span {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .stat {
+    text-align: right;
+  }
+  .stat-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── HANGMAN PANEL ── */
+  .hangman-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .lives-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* SVG Hangman */
+  #hangman-svg {
+    width: 160px;
+    height: 180px;
+  }
+
+  .hm-part {
+    stroke: var(--text);
+    stroke-width: 3;
+    stroke-linecap: round;
+    fill: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .hm-part.show { opacity: 1; }
+  .hm-part.dead { stroke: var(--red); }
+
+  /* Lives dots */
+  .lives-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    transition: all 0.3s ease;
+  }
+  .dot.lost { background: var(--red); transform: scale(0.7); }
+
+  /* Category badge */
+  .cat-badge {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    border: 1px solid;
+  }
+  .cat-cn { color: #E05252; border-color: #E05252; background: rgba(224,82,82,0.1); }
+  .cat-tw { color: #58A6FF; border-color: #58A6FF; background: rgba(88,166,255,0.1); }
+  .cat-mn { color: #56D364; border-color: #56D364; background: rgba(86,211,100,0.1); }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Hint box */
+  .hint-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hint-box::before {
+    content: '?';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 60px;
+    color: rgba(255,255,255,0.03);
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  .hint-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .hint-text {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* Extra hints */
+  .extra-hints {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .hint-chip {
+    font-size: 11px;
+    padding: 4px 10px;
+    background: rgba(232,184,75,0.08);
+    border: 1px solid rgba(232,184,75,0.2);
+    border-radius: 4px;
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Space Mono', monospace;
+  }
+  .hint-chip:hover:not(.used) {
+    background: rgba(232,184,75,0.15);
+  }
+  .hint-chip.used {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .hint-chip.revealed {
+    color: var(--text);
+    border-color: var(--border);
+    background: rgba(255,255,255,0.05);
+    opacity: 1;
+  }
+
+  /* Word display */
+  .word-area {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+  }
+
+  .word-slots {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .letter-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .slot-char {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 700;
+    color: var(--gold);
+    min-width: 28px;
+    text-align: center;
+    height: 34px;
+    line-height: 34px;
+    transition: all 0.3s ease;
+  }
+  .slot-char.space { min-width: 16px; }
+  .slot-char.correct { animation: pop 0.3s ease; }
+  @keyframes pop {
+    0% { transform: scale(1.5); color: var(--green); }
+    100% { transform: scale(1); color: var(--gold); }
+  }
+
+  .slot-line {
+    height: 2px;
+    width: 100%;
+    background: var(--border);
+    border-radius: 1px;
+  }
+  .slot-line.filled { background: var(--gold); }
+
+  /* ── KEYBOARD ── */
+  .keyboard {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .kb-row {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 5px;
+  }
+
+  .kb-key {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .kb-key:hover:not(:disabled) {
+    background: rgba(232,184,75,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: translateY(-1px);
+  }
+
+  .kb-key:disabled { cursor: default; }
+  .kb-key.hit { background: rgba(86,211,100,0.15); border-color: var(--green); color: var(--green); }
+  .kb-key.miss { background: rgba(255,255,255,0.02); border-color: transparent; color: rgba(255,255,255,0.15); }
+
+  /* ── OVERLAY ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    display: none;
+  }
+  .overlay.show { display: flex; }
+
+  .overlay-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 40px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .overlay-emoji { font-size: 56px; margin-bottom: 12px; }
+  .overlay-title {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .overlay-word {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: 0.15em;
+  }
+  .overlay-fact {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 24px;
+    font-family: 'Shippori Mincho', serif;
+  }
+
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--ink);
+  }
+  .btn-gold:hover { background: #F0C96A; transform: translateY(-1px); }
+
+  /* ── TITLE SCREEN ── */
+  #title-screen {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .title-kanji {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 72px;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 4px;
+    text-shadow: 0 0 40px rgba(232,184,75,0.3);
+  }
+  .title-sk {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .word-preview {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .wp-slot {
+    width: 32px;
+    height: 40px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 4px;
+    font-size: 18px;
+    color: var(--gold);
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .how-to {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    text-align: left;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+  .how-to strong { color: var(--text); }
+
+  .cat-preview {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  /* Shake animation for wrong */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .shake { animation: shake 0.3s ease; }
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- TITLE -->
+  <div id="title-screen">
+    <div class="title-kanji">猜字</div>
+    <div class="title-sk">Hádaj slovo · Ázia</div>
+
+    <div class="word-preview">
+      <div class="wp-slot">H</div>
+      <div class="wp-slot">_</div>
+      <div class="wp-slot">_</div>
+      <div class="wp-slot">_</div>
+      <div class="wp-slot">J</div>
+    </div>
+
+    <div class="how-to">
+      <strong>Ako hrať:</strong><br>
+      → Uhádni skryté slovo písmeno po písmene<br>
+      → Máš <strong>7 životov</strong> — každý omyl odpíše jeden<br>
+      → Klávesy na obrazovke alebo fyzická klávesnica<br>
+      → Nápovedy ti pomôžu, ale míňajú životy
+    </div>
+
+    <div class="cat-preview">
+      <span class="cat-badge cat-cn">🇨🇳 Čína</span>
+      <span class="cat-badge cat-tw">🇹🇼 Taiwan</span>
+      <span class="cat-badge cat-mn">🇲🇳 Mongolsko</span>
+    </div>
+
+    <button class="btn btn-gold" onclick="startGame()">Začať hru</button>
+  </div>
+
+  <!-- MAIN GAME (hidden initially) -->
+  <div id="main-game" style="display:none">
+    <div class="topbar">
+      <div class="logo">
+        猜字
+        <span>Hádaj slovo · Ázia</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-val" id="stat-score">0</div>
+          <div class="stat-label">Skóre</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="stat-wins">0</div>
+          <div class="stat-label">Výhry</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="stat-streak">0</div>
+          <div class="stat-label">Séria</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="stat-words">0</div>
+          <div class="stat-label">Slov</div>
+        </div>
+        <button id="submit-score-btn" style="background:var(--gold);color:var(--ink);border:none;padding:8px 14px;border-radius:4px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;">🏁 Odoslať</button>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- LEFT: Hangman -->
+      <div class="hangman-panel">
+        <div class="lives-label">Životy</div>
+        <div class="lives-dots" id="lives-dots"></div>
+
+        <svg id="hangman-svg" viewBox="0 0 160 180">
+          <!-- Scaffold -->
+          <line x1="20" y1="170" x2="140" y2="170" class="hm-part show" style="opacity:0.3"/>
+          <line x1="60" y1="170" x2="60" y2="10" class="hm-part show" style="opacity:0.3"/>
+          <line x1="60" y1="10" x2="110" y2="10" class="hm-part show" style="opacity:0.3"/>
+          <line x1="110" y1="10" x2="110" y2="30" class="hm-part show" style="opacity:0.3"/>
+          <!-- Body parts (id: p0..p6) -->
+          <circle id="p0" cx="110" cy="44" r="14" class="hm-part"/> <!-- head -->
+          <line id="p1" x1="110" y1="58" x2="110" y2="105" class="hm-part"/> <!-- body -->
+          <line id="p2" x1="110" y1="68" x2="88" y2="90" class="hm-part"/> <!-- left arm -->
+          <line id="p3" x1="110" y1="68" x2="132" y2="90" class="hm-part"/> <!-- right arm -->
+          <line id="p4" x1="110" y1="105" x2="88" y2="135" class="hm-part"/> <!-- left leg -->
+          <line id="p5" x1="110" y1="105" x2="132" y2="135" class="hm-part"/> <!-- right leg -->
+          <!-- face when dead -->
+          <g id="p6" class="hm-part">
+            <line x1="104" y1="38" x2="108" y2="42" stroke-width="2"/>
+            <line x1="108" y1="38" x2="104" y2="42" stroke-width="2"/>
+            <line x1="112" y1="38" x2="116" y2="42" stroke-width="2"/>
+            <line x1="116" y1="38" x2="112" y2="42" stroke-width="2"/>
+            <path d="M104 52 Q110 47 116 52" stroke-width="2"/>
+          </g>
+        </svg>
+
+        <div id="cat-badge-display" class="cat-badge cat-cn">🇨🇳 Čína</div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <!-- Hint -->
+        <div class="hint-box">
+          <div class="hint-label">Nápoveda</div>
+          <div class="hint-text" id="hint-main">—</div>
+        </div>
+
+        <!-- Extra hints -->
+        <div class="extra-hints" id="extra-hints"></div>
+
+        <!-- Word -->
+        <div class="word-area">
+          <div class="word-slots" id="word-slots"></div>
+        </div>
+
+        <!-- Keyboard -->
+        <div class="keyboard" id="keyboard"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="overlay-emoji" id="ov-emoji">🎉</div>
+    <div class="overlay-title" id="ov-title">Výhra!</div>
+    <div class="overlay-word" id="ov-word"></div>
+    <div class="overlay-fact" id="ov-fact"></div>
+    <button class="btn btn-gold" onclick="nextWord()">Ďalšie slovo →</button>
+  </div>
+</div>
+
+<script>
+const WORDS = [
+  // CHINA
+  { word: 'PEKING', cat: 'cn', flag: '🇨🇳', country: 'Čína',
+    hint: 'Hlavné mesto Číny s 21 miliónmi obyvateľov.',
+    extras: ['Začína na P', 'Olympiáda 2008', '北京 po čínsky'],
+    fact: 'Peking (Beijing = "Severné hlavné mesto") bol sídlom cisárov dynastií Ming a Čching. Nachádza sa tu Zakázané mesto — najväčší palácový komplex na svete.' },
+
+  { word: 'PANDA', cat: 'cn', flag: '🇨🇳', country: 'Čína',
+    hint: 'Čiernobiely symbol Číny, ktorý žerie bambus.',
+    extras: ['Zviera', 'WWF logo', '熊猫 po čínsky'],
+    fact: 'Veľká panda je národným symbolom Číny. V prírode žije len asi 1 800 jedincov. Denne zje 12–38 kg bambusu, napriek tomu, že má tráviaci systém mäsožravca.' },
+
+  { word: 'BAMBUS', cat: 'cn', flag: '🇨🇳', country: 'Čína',
+    hint: 'Rastlina, ktorá rastie aj 90 cm za deň a živí pandy.',
+    extras: ['Tráva, nie strom', 'Stavebný materiál', 'Symbol rýchleho rastu'],
+    fact: 'Bambus je technicky tráva, nie strom. Niektoré druhy rastú až 91 cm za 24 hodín — je to najrýchlejšie rastúca rastlina na Zemi. V Číne sa používa na stavby, papier, jedlo aj náradie.' },
+
+  { word: 'CISÁR', cat: 'cn', flag: '🇨🇳', country: 'Čína',
+    hint: 'Vládca Čínskej ríše — "syn nebes".',
+    extras: ['Titul panovníka', 'Žltá farba = jeho farba', 'Posledný: Pchu-i'],
+    fact: 'Čínski cisári vládli viac ako 2 000 rokov (221 pr.n.l. – 1912). Nosili výhradne žltú farbu, ktorá bola pre ostatných zakázaná. Posledným cisárom bol Pchu-i, ktorý nastúpil na trón vo veku 2 rokov.' },
+
+  { word: 'SOJKA', cat: 'cn', flag: '🇨🇳', country: 'Čína',
+    hint: 'Čínsky čajový nápoj z kvasených bôbov, základ ázijskej kuchyne.',
+    extras: ['Nie je to vtáčie meno', 'Biela tekutina', 'Z fazule'],
+    fact: 'Sójová omáčka vzniká kvasením sójových bôbov a je základom ázijskej kuchyne viac ako 2 500 rokov. Čína je najväčší producent sóje na svete.' },
+
+  { word: 'GOBI', cat: 'cn', flag: '🇨🇳', country: 'Čína/Mongolsko',
+    hint: 'Najväčšia púšť Ázie, rozprestierajúca sa medzi Čínou a Mongolskom.',
+    extras: ['Púšť', '1,3 mil. km²', 'Studená púšť'],
+    fact: 'Púšť Gobi nie je typická horúca piesočná púšť — je to studená púšť, kde v zime teplota klesá pod -40 °C. Pokrýva ju prevažne skala, nie piesok. Nájdeme tu fosílie dinosaurov.' },
+
+  // TAIWAN
+  { word: 'TAIPEI', cat: 'tw', flag: '🇹🇼', country: 'Taiwan',
+    hint: 'Hlavné mesto Taiwanu, domov mrakodrapu Taipei 101.',
+    extras: ['Začína na T', '臺北 po čínsky', '2,7 mil. obyvateľov'],
+    fact: 'Taipei (Tchaj-pej) je pulzujúca metropola s vynikajúcou hromadnou dopravou, nočnými trhmi a bublinkovým čajom. Nočný trh Shilin je jeden z najväčších v Ázii.' },
+
+  { word: 'ČIPSET', cat: 'tw', flag: '🇹🇼', country: 'Taiwan',
+    hint: 'Taiwan vyrába väčšinu svetových týchto elektronických súčiastok.',
+    extras: ['Elektronika', 'TSMC ho vyrába', 'V každom telefóne'],
+    fact: 'Taiwanská spoločnosť TSMC vyrába viac ako 50% všetkých pokročilých mikroprocesorov na svete. Bez taiwanských čipov by nefungovali smartfóny, autá ani lietadlá.' },
+
+  { word: 'ORCHIDEA', cat: 'tw', flag: '🇹🇼', country: 'Taiwan',
+    hint: 'Taiwan je svetový líder v pestovaní tohto exotického kvetu.',
+    extras: ['Kvet', 'Taiwan = 80% světové produkce', 'Falenopsis'],
+    fact: 'Taiwan produkuje okolo 80 % svetových orchideí typu Phalaenopsis (motýlia orchidea). Je to milionový exportný priemysel. Klimatické podmienky ostrova sú pre tieto kvety ideálne.' },
+
+  { word: 'BUBLINKA', cat: 'tw', flag: '🇹🇼', country: 'Taiwan',
+    hint: 'Taiwanský vynález — čaj s guľôčkami z tapiokového škrobu.',
+    extras: ['Nápoj', 'Vymyslený v 80. rokoch', 'Guľôčky na dne'],
+    fact: 'Bubble tea (boba čaj) bol vynájdený na Taiwane v 80. rokoch 20. storočia. Tapiokové perličky sa vyrábajú z koreňa manioku. Dnes je populárny po celom svete.' },
+
+  { word: 'SOPKA', cat: 'tw', flag: '🇹🇼', country: 'Taiwan',
+    hint: 'Taiwan leží na "Ohnivom prstenci" — má aktívne hory tohto druhu.',
+    extras: ['Geologický útvar', 'Yangmingshan', 'Láva a para'],
+    fact: 'Taiwan leží na tektonickej hranici Euroázijskej a Filipínskej dosky. Hora Yangmingshan je aktívna sopka so sírnatými prameňmi. Zemetrasenia sú na Taiwane bežné.' },
+
+  // MONGOLIA
+  { word: 'JURTA', cat: 'mn', flag: '🇲🇳', country: 'Mongolsko',
+    hint: 'Prenosný okrúhly stan mongolských kočovníkov.',
+    extras: ['Po mongolsky: Ger', 'Postaví sa za 2 hod.', 'Okrúhly tvar'],
+    fact: 'Mongolská jurta (ger) je geniálna konštrukcia: ľahká, teplá a skladná. Dizajn sa nezmenil tisíc rokov. Dnes ju používa asi 30% Mongolov. Je odolná voči vetru aj chladu -40°C.' },
+
+  { word: 'DŽINGIS', cat: 'mn', flag: '🇲🇳', country: 'Mongolsko',
+    hint: 'Meno veľkého Chána, zakladateľa Mongolskej ríše.',
+    extras: ['Žil 1162–1227', 'Chán = vládca', '成吉思汗 po čínsky'],
+    fact: 'Džingischán zjednotil mongolské kmene a vybudoval najväčšiu súvislú pozemskú ríšu v dejinách. Vedci odhadujú, že 0,5% svetovej populácie má jeho DNA.' },
+
+  { word: 'STEPNÍK', cat: 'mn', flag: '🇲🇳', country: 'Mongolsko',
+    hint: 'Mongolský kôň — malý, vytrvalý, žijúci voľne na stepi.',
+    extras: ['Zviera', 'Przewalského kôň', 'Mongolsko má 3,5M koní'],
+    fact: 'Mongolsko má viac koní (3,5 mil.) ako ľudí (3,3 mil.). Mongolský kôň Przewalského je jediný skutočne divoký kôň na svete, ktorý prežil do modernej doby.' },
+
+  { word: 'NAADAM', cat: 'mn', flag: '🇲🇳', country: 'Mongolsko',
+    hint: 'Najdôležitejší mongolský sviatok s dostihmi, zápasom a lukostreľbou.',
+    extras: ['Festival', 'Každý rok v júli', 'UNESCO dedičstvo'],
+    fact: 'Naadam je národný festival Mongolska, konaný každý júl. Skladá sa z troch hier: jazdecké dostihy (jazdia deti 5-12 rokov!), mongolský zápas a lukostreľba.' },
+
+  { word: 'ULÁNBÁTAR', cat: 'mn', flag: '🇲🇳', country: 'Mongolsko',
+    hint: 'Hlavné a zároveň najchladnejšie hlavné mesto sveta.',
+    extras: ['Ulaan Baatar', 'Červený hrdina', 'Priemer: -1.3°C ročne'],
+    fact: 'Ulánbátar (Červený hrdina) je najchladnejšie hlavné mesto sveta s ročnou priemernou teplotou -1,3 °C. Žije tu takmer polovica všetkých Mongolov.' },
+];
+
+// State
+let currentWord = null;
+let guessed = new Set();
+let wrong = 0;
+const MAX_WRONG = 7;
+let wins = 0, streak = 0, totalWords = 0;
+let usedWords = [];
+let hintsUsed = 0;
+const PARTS = ['p0','p1','p2','p3','p4','p5','p6'];
+
+const ROWS = [
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['Z','X','C','V','B','N','M']
+];
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('main-game').style.display = 'block';
+  buildKeyboard();
+  nextWord();
+}
+
+function pickWord() {
+  const available = WORDS.filter(w => !usedWords.includes(w.word));
+  if (available.length === 0) { usedWords = []; return pickWord(); }
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function nextWord() {
+  document.getElementById('overlay').classList.remove('show');
+  currentWord = pickWord();
+  usedWords.push(currentWord.word);
+  guessed = new Set();
+  wrong = 0;
+  hintsUsed = 0;
+  totalWords++;
+  document.getElementById('stat-words').textContent = totalWords;
+  renderAll();
+}
+
+function renderAll() {
+  renderHangman();
+  renderLives();
+  renderWord();
+  renderHints();
+  resetKeyboard();
+  // category badge
+  const badge = document.getElementById('cat-badge-display');
+  badge.textContent = currentWord.flag + ' ' + currentWord.country;
+  badge.className = 'cat-badge cat-' + currentWord.cat;
+  // main hint
+  document.getElementById('hint-main').textContent = currentWord.hint;
+}
+
+function renderHangman() {
+  PARTS.forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.toggle('show', i < wrong);
+    el.classList.toggle('dead', wrong >= MAX_WRONG);
+  });
+}
+
+function renderLives() {
+  const container = document.getElementById('lives-dots');
+  container.innerHTML = '';
+  for (let i = 0; i < MAX_WRONG; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < wrong ? ' lost' : '');
+    container.appendChild(d);
+  }
+}
+
+function renderWord() {
+  const slots = document.getElementById('word-slots');
+  slots.innerHTML = '';
+  const letters = currentWord.word.split('');
+  letters.forEach(ch => {
+    const slot = document.createElement('div');
+    slot.className = 'letter-slot';
+    if (ch === ' ') {
+      slot.innerHTML = `<div class="slot-char space"> </div><div class="slot-line"></div>`;
+    } else {
+      const revealed = guessed.has(ch);
+      slot.innerHTML = `
+        <div class="slot-char${revealed ? ' correct' : ''}">${revealed ? ch : '_'}</div>
+        <div class="slot-line${revealed ? ' filled' : ''}"></div>`;
+    }
+    slots.appendChild(slot);
+  });
+}
+
+function renderHints() {
+  const container = document.getElementById('extra-hints');
+  container.innerHTML = '';
+  currentWord.extras.forEach((hint, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'hint-chip' + (i < hintsUsed ? ' revealed' : '');
+    chip.textContent = i < hintsUsed ? hint : `💡 Nápoveda ${i+1} (−1 život)`;
+    if (i >= hintsUsed) {
+      chip.onclick = () => useHint(i);
+    }
+    container.appendChild(chip);
+  });
+}
+
+function useHint(i) {
+  if (wrong >= MAX_WRONG - 1) return;
+  hintsUsed = i + 1;
+  wrong++;
+  renderHangman();
+  renderLives();
+  renderHints();
+  checkLose();
+}
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  ROWS.forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'kb-row';
+    row.forEach(letter => {
+      const btn = document.createElement('button');
+      btn.className = 'kb-key';
+      btn.textContent = letter;
+      btn.id = 'key-' + letter;
+      btn.onclick = () => guess(letter);
+      rowDiv.appendChild(btn);
+    });
+    kb.appendChild(rowDiv);
+  });
+}
+
+function resetKeyboard() {
+  ROWS.flat().forEach(l => {
+    const btn = document.getElementById('key-' + l);
+    if (btn) { btn.className = 'kb-key'; btn.disabled = false; }
+  });
+}
+
+function guess(letter) {
+  if (guessed.has(letter)) return;
+  guessed.add(letter);
+
+  const btn = document.getElementById('key-' + letter);
+  if (btn) btn.disabled = true;
+
+  const wordLetters = currentWord.word.split('');
+  if (wordLetters.includes(letter)) {
+    btn && btn.classList.add('hit');
+    renderWord();
+    checkWin();
+  } else {
+    btn && btn.classList.add('miss');
+    wrong++;
+    renderHangman();
+    renderLives();
+    // Shake
+    const frame = document.getElementById('main-game');
+    frame.style.animation = 'none'; frame.offsetHeight;
+    const wordArea = document.querySelector('.word-area');
+    wordArea.classList.remove('shake');
+    void wordArea.offsetWidth;
+    wordArea.classList.add('shake');
+    setTimeout(() => wordArea.classList.remove('shake'), 400);
+    checkLose();
+  }
+}
+
+function checkWin() {
+  const letters = [...new Set(currentWord.word.replace(/ /g,'').split(''))];
+  if (letters.every(l => guessed.has(l))) {
+    wins++;
+    streak++;
+    document.getElementById('stat-wins').textContent = wins;
+    document.getElementById('stat-streak').textContent = streak;
+    showOverlay(true);
+  }
+}
+
+function checkLose() {
+  if (wrong >= MAX_WRONG) {
+    streak = 0;
+    document.getElementById('stat-streak').textContent = streak;
+    // reveal all
+    currentWord.word.split('').forEach(ch => guessed.add(ch));
+    renderWord();
+    showOverlay(false);
+  }
+}
+
+function showOverlay(won) {
+  document.getElementById('ov-emoji').textContent = won ? '🎉' : '💀';
+  document.getElementById('ov-title').textContent = won ? 'Správne!' : 'Koniec...';
+  document.getElementById('ov-word').textContent = currentWord.word;
+  document.getElementById('ov-fact').textContent = currentWord.fact;
+  document.getElementById('overlay').classList.add('show');
+}
+
+// Physical keyboard support
+document.addEventListener('keydown', e => {
+  const l = e.key.toUpperCase();
+  if (/^[A-Z]$/.test(l) && document.getElementById('main-game').style.display !== 'none') {
+    guess(l);
+  }
+});
+
+function computeScore() {
+  return wins * 100 + streak * 50 - hintsUsed * 15;
+}
+
+function updateScoreDisplay() {
+  const el = document.getElementById('stat-score');
+  if (el) el.textContent = Math.max(0, computeScore());
+}
+
+const _origCheckWin = checkWin;
+checkWin = function() {
+  _origCheckWin();
+  updateScoreDisplay();
+};
+const _origCheckLose = checkLose;
+checkLose = function() {
+  _origCheckLose();
+  updateScoreDisplay();
+};
+const _origNextWord = nextWord;
+nextWord = function() {
+  _origNextWord();
+  updateScoreDisplay();
+};
+
+function submitMyScore() {
+  const btn = document.getElementById('submit-score-btn');
+  const player = Leaderboard.getPlayer();
+  const room = Leaderboard.getRoom();
+  if (!player || !room) {
+    alert('Najprv si v hlavnom menu (index.html) nastav meno a vytvor herňu.');
+    return;
+  }
+  const score = Math.max(0, computeScore());
+  btn.disabled = true;
+  btn.textContent = '⏳ Odosielam…';
+  Leaderboard.submitScore('hangman', score, { wins, streak, hintsUsed }).then(ok => {
+    if (ok) {
+      btn.textContent = '✓ ' + score + ' bodov';
+      btn.style.background = 'var(--green)';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '🏁 Odoslať';
+        btn.style.background = 'var(--gold)';
+      }, 3000);
+    } else {
+      btn.textContent = '✗ Chyba';
+      btn.style.background = 'var(--red)';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '🏁 Odoslať';
+        btn.style.background = 'var(--gold)';
+      }, 2500);
+    }
+  });
+}
+
+document.getElementById('submit-score-btn').addEventListener('click', submitMyScore);
+</script>
+</body>
+</html>
